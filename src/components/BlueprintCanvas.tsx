@@ -29,12 +29,23 @@ interface BlueprintCanvasProps {
 
 const getNodeColor = (nodeType: string) => {
   switch (nodeType) {
-    case NodeType.VALUE: return '#ff6b6b';
-    case NodeType.LONG_GOAL: return '#4ecdc4';
-    case NodeType.SHORT_GOAL: return '#45b7d1';
-    case NodeType.PLAN: return '#96ceb4';
-    case NodeType.TASK: return '#feca57';
-    default: return '#ddd';
+    case NodeType.VALUE: return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+    case NodeType.LONG_GOAL: return 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
+    case NodeType.SHORT_GOAL: return 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)';
+    case NodeType.PLAN: return 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)';
+    case NodeType.TASK: return 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)';
+    default: return 'linear-gradient(135deg, #e0e0e0 0%, #f0f0f0 100%)';
+  }
+};
+
+const getNodeIcon = (nodeType: string) => {
+  switch (nodeType) {
+    case NodeType.VALUE: return '🌟';
+    case NodeType.LONG_GOAL: return '🎯';
+    case NodeType.SHORT_GOAL: return '📅';
+    case NodeType.PLAN: return '📋';
+    case NodeType.TASK: return '✅';
+    default: return '📌';
   }
 };
 
@@ -65,8 +76,9 @@ const getNodeStyle = (node: Node) => {
 };
 
 const createDefaultNode = (id: string, label: string, nodeType: NodeType, position: {x: number, y: number}, progress = 0, completed = false) => {
-  const displayLabel = completed ? `✓ ${label}` : `${label} (${progress}%)`;
-  const baseColor = getNodeColor(nodeType);
+  const icon = getNodeIcon(nodeType);
+  const displayLabel = completed ? `${icon} ✓ ${label}` : `${icon} ${label} (${progress}%)`;
+  const gradient = getNodeColor(nodeType);
   
   return {
     id,
@@ -84,12 +96,17 @@ const createDefaultNode = (id: string, label: string, nodeType: NodeType, positi
     },
     position,
     style: {
-      backgroundColor: baseColor,
-      border: completed ? '3px solid #22c55e' : '2px solid #333',
-      borderRadius: '8px',
-      padding: '10px',
-      minWidth: '150px',
-      minHeight: '40px',
+      background: gradient,
+      border: completed ? '3px solid #10b981' : '2px solid rgba(255,255,255,0.2)',
+      borderRadius: '16px',
+      padding: '16px 20px',
+      minWidth: '200px',
+      minHeight: '60px',
+      color: 'white',
+      fontWeight: '600',
+      fontSize: '14px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+      backdropFilter: 'blur(8px)',
     },
   };
 };
@@ -196,11 +213,12 @@ export default function BlueprintCanvas({
           
           // 레이블 업데이트 (진행률과 완료 상태 반영)
           const baseLabel = updatedData.originalLabel || updatedData.label;
+          const icon = getNodeIcon(updatedData.nodeType);
           const displayLabel = updatedData.completed 
-            ? `✓ ${baseLabel}` 
-            : `${baseLabel} (${updatedData.progress || 0}%)`;
+            ? `${icon} ✓ ${baseLabel}` 
+            : `${icon} ${baseLabel} (${updatedData.progress || 0}%)`;
           
-          const baseColor = getNodeColor(updatedData.nodeType);
+          const gradient = getNodeColor(updatedData.nodeType);
           
           return { 
             ...n, 
@@ -210,12 +228,17 @@ export default function BlueprintCanvas({
               originalLabel: baseLabel
             },
             style: {
-              backgroundColor: baseColor,
-              border: updatedData.completed ? '3px solid #22c55e' : '2px solid #333',
-              borderRadius: '8px',
-              padding: '10px',
-              minWidth: '150px',
-              minHeight: '40px',
+              background: gradient,
+              border: updatedData.completed ? '3px solid #10b981' : '2px solid rgba(255,255,255,0.2)',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              minWidth: '200px',
+              minHeight: '60px',
+              color: 'white',
+              fontWeight: '600',
+              fontSize: '14px',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+              backdropFilter: 'blur(8px)',
             }
           };
         }
@@ -243,44 +266,62 @@ export default function BlueprintCanvas({
     <div className="w-full h-full flex flex-col">
       {/* 툴바 */}
       {editable && (
-        <div className="flex items-center gap-4 p-4 bg-gray-100 border-b">
-          <select 
-            value={selectedNodeType} 
-            onChange={(e) => setSelectedNodeType(e.target.value as NodeType)}
-            className="px-3 py-1 border rounded"
-          >
-            <option value={NodeType.VALUE}>가치관</option>
-            <option value={NodeType.LONG_GOAL}>장기목표</option>
-            <option value={NodeType.SHORT_GOAL}>단기목표</option>
-            <option value={NodeType.PLAN}>계획</option>
-            <option value={NodeType.TASK}>할일</option>
-          </select>
-          <button 
-            onClick={addNewNode}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          >
-            노드 추가
-          </button>
-          <button 
-            onClick={handleSave}
-            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            disabled={blueprint.isSaving}
-          >
-            {blueprint.isSaving ? '저장 중...' : '저장'}
-          </button>
-          <button 
-            onClick={handleReset}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            초기화
-          </button>
-          <div className="text-sm text-gray-600">
-            💡 노드를 더블클릭하면 편집할 수 있습니다
-            {blueprint.lastSaved && (
-              <span className="ml-4">
-                마지막 저장: {blueprint.lastSaved.toLocaleTimeString()}
-              </span>
-            )}
+        <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">노드 타입:</span>
+                <select 
+                  value={selectedNodeType} 
+                  onChange={(e) => setSelectedNodeType(e.target.value as NodeType)}
+                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={NodeType.VALUE}>🌟 가치관</option>
+                  <option value={NodeType.LONG_GOAL}>🎯 장기목표</option>
+                  <option value={NodeType.SHORT_GOAL}>📅 단기목표</option>
+                  <option value={NodeType.PLAN}>📋 계획</option>
+                  <option value={NodeType.TASK}>✅ 할일</option>
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={addNewNode}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <span>➕</span>
+                  노드 추가
+                </button>
+                <button 
+                  onClick={handleSave}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={blueprint.isSaving}
+                >
+                  <span>💾</span>
+                  {blueprint.isSaving ? '저장 중...' : '저장'}
+                </button>
+                <button 
+                  onClick={handleReset}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <span>🔄</span>
+                  초기화
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <span>💡</span>
+                <span>노드 클릭: 상세 정보 | 더블클릭: 빠른 편집</span>
+              </div>
+              {blueprint.lastSaved && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg">
+                  <span>✓</span>
+                  <span>저장됨: {blueprint.lastSaved.toLocaleTimeString()}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -59,48 +59,61 @@ export default function NodeDetailPanel({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">
-            {getNodeTypeLabel(localData.nodeType)} 세부 정보
-          </h2>
-          <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold flex items-center gap-2">
+              <span className="text-2xl">
+                {localData.nodeType === NodeType.VALUE && '🌟'}
+                {localData.nodeType === NodeType.LONG_GOAL && '🎯'}
+                {localData.nodeType === NodeType.SHORT_GOAL && '📅'}
+                {localData.nodeType === NodeType.PLAN && '📋'}
+                {localData.nodeType === NodeType.TASK && '✅'}
+              </span>
+              {getNodeTypeLabel(localData.nodeType)} 세부 정보
+            </h2>
+            <button 
+              onClick={onClose}
+              className="text-white/80 hover:text-white text-2xl font-bold transition-colors"
+            >
+              ✕
+            </button>
+          </div>
         </div>
+        
+        <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
 
         <div className="space-y-4">
           {/* 제목 */}
           <div>
-            <label className="block text-sm font-medium mb-1">제목</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">제목</label>
             {editable ? (
               <input
                 type="text"
                 value={localData.originalLabel || localData.label || ''}
                 onChange={(e) => setLocalData({ ...localData, originalLabel: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                placeholder="목표 제목을 입력하세요"
               />
             ) : (
-              <p className="px-3 py-2 bg-gray-50 rounded-md">{localData.originalLabel || localData.label}</p>
+              <p className="px-4 py-3 bg-gray-50 rounded-xl border-2 border-gray-100">{localData.originalLabel || localData.label}</p>
             )}
           </div>
 
           {/* 설명 */}
           <div>
-            <label className="block text-sm font-medium mb-1">설명</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">설명</label>
             {editable ? (
               <textarea
                 value={localData.description || ''}
                 onChange={(e) => setLocalData({ ...localData, description: e.target.value })}
-                className="w-full px-3 py-2 border rounded-md h-[5rem]"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all duration-200 resize-none"
                 placeholder="자세한 설명을 입력하세요..."
+                rows={4}
               />
             ) : (
-              <p className="px-3 py-2 bg-gray-50 rounded-md min-h-[5rem]">
+              <p className="px-4 py-3 bg-gray-50 rounded-xl border-2 border-gray-100 min-h-[6rem]">
                 {localData.description || '설명이 없습니다.'}
               </p>
             )}
@@ -108,22 +121,30 @@ export default function NodeDetailPanel({
 
           {/* 진행률 */}
           <div>
-            <label className="block text-sm font-medium mb-1">
-              진행률: {localData.progress || 0}%
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              진행률: <span className="text-blue-600 font-bold">{localData.progress || 0}%</span>
             </label>
             {editable ? (
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={localData.progress || 0}
-                onChange={(e) => setLocalData({ ...localData, progress: parseInt(e.target.value) })}
-                className="w-full"
-              />
+              <div className="space-y-2">
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={localData.progress || 0}
+                  onChange={(e) => setLocalData({ ...localData, progress: parseInt(e.target.value) })}
+                  className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-300"
+                    style={{ width: `${localData.progress || 0}%` }}
+                  />
+                </div>
+              </div>
             ) : (
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-3">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all"
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all"
                   style={{ width: `${localData.progress || 0}%` }}
                 />
               </div>
@@ -224,22 +245,26 @@ export default function NodeDetailPanel({
           </div>
         </div>
 
+        </div>
+        
         {/* 버튼 */}
-        <div className="flex gap-2 mt-6">
-          {editable && (
+        <div className="p-6 bg-gray-50 border-t border-gray-100">
+          <div className="flex gap-3">
+            {editable && (
+              <button
+                onClick={handleSave}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                💾 저장
+              </button>
+            )}
             <button
-              onClick={handleSave}
-              className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
             >
-              저장
+              {editable ? '❌ 취소' : '✅ 닫기'}
             </button>
-          )}
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-          >
-            {editable ? '취소' : '닫기'}
-          </button>
+          </div>
         </div>
       </div>
     </div>
