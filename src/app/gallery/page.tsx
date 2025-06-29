@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function GalleryPage() {
   const sampleBlueprints = [
     {
@@ -33,18 +35,19 @@ export default function GalleryPage() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sampleBlueprints.map((blueprint) => (
-            <div 
+            <Link
               key={blueprint.id}
-              className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer"
+              href={`/gallery/${blueprint.id}`}
+              className="border rounded-lg p-6 hover:shadow-lg transition-shadow cursor-pointer block"
             >
               <div className="text-4xl mb-4">{blueprint.thumbnail}</div>
               <h3 className="text-xl font-semibold mb-2">{blueprint.title}</h3>
               <p className="text-sm text-gray-500 mb-2">by {blueprint.author}</p>
               <p className="text-gray-700">{blueprint.description}</p>
-              <button className="mt-4 text-blue-600 hover:text-blue-800 text-sm">
+              <div className="mt-4 text-blue-600 hover:text-blue-800 text-sm">
                 청사진 보기 →
-              </button>
-            </div>
+              </div>
+            </Link>
           ))}
         </div>
       </div>
