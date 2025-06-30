@@ -1,35 +1,97 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
+import FollowButton from '@/components/FollowButton';
 
 export default function GalleryPage() {
+  const [selectedCategory, setSelectedCategory] = useState('전체');
+  const [sortBy, setSortBy] = useState('latest');
+
+  const categories = ['전체', '창업', '학습', '건강', '창작', '자기계발', '커리어'];
+  
   const sampleBlueprints = [
     {
       id: 1,
       title: "스타트업 창업 청사진",
       author: "김창업",
+      authorId: "user-startup",
+      authorAvatar: "👨‍💼",
       description: "0에서 시작해서 시리즈 A까지의 여정",
       thumbnail: "🚀",
       tags: ["스타트업", "투자", "창업"],
+      category: "창업",
       progress: 85,
+      viewCount: 1247,
+      likeCount: 89,
+      privacy: 'public' as const,
+      createdAt: new Date('2024-01-15'),
     },
     {
       id: 2,
       title: "프리랜서 개발자 전환",
       author: "이개발",
+      authorId: "user-dev",
+      authorAvatar: "👩‍💻",
       description: "직장에서 프리랜서로 독립하기까지",
       thumbnail: "💻",
       tags: ["개발", "프리랜서", "독립"],
+      category: "커리어",
       progress: 92,
+      viewCount: 856,
+      likeCount: 67,
+      privacy: 'public' as const,
+      createdAt: new Date('2024-02-01'),
     },
     {
       id: 3,
       title: "유튜버 100만 구독자",
       author: "박유튜브",
+      authorId: "user-youtube",
+      authorAvatar: "🎬",
       description: "첫 영상부터 100만 구독자까지의 청사진",
       thumbnail: "📺",
       tags: ["유튜브", "콘텐츠", "구독자"],
+      category: "창작",
       progress: 78,
+      viewCount: 2103,
+      likeCount: 156,
+      privacy: 'public' as const,
+      createdAt: new Date('2024-01-28'),
+    },
+    {
+      id: 4,
+      title: "마라톤 완주 프로젝트",
+      author: "달림이",
+      authorId: "user-runner",
+      authorAvatar: "🏃‍♀️",
+      description: "운동 경험 없는 직장인이 풀마라톤 완주하기",
+      thumbnail: "🏃‍♂️",
+      tags: ["운동", "마라톤", "건강"],
+      category: "건강",
+      progress: 45,
+      viewCount: 634,
+      likeCount: 42,
+      privacy: 'public' as const,
+      createdAt: new Date('2024-02-10'),
     },
   ];
+
+  const filteredBlueprints = sampleBlueprints
+    .filter(blueprint => selectedCategory === '전체' || blueprint.category === selectedCategory)
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'popular':
+          return b.viewCount - a.viewCount;
+        case 'liked':
+          return b.likeCount - a.likeCount;
+        case 'progress':
+          return b.progress - a.progress;
+        case 'latest':
+        default:
+          return b.createdAt.getTime() - a.createdAt.getTime();
+      }
+    });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -50,8 +112,11 @@ export default function GalleryPage() {
           </div>
           
           <nav className="flex items-center gap-4">
-            <Link href="/blueprint" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+            <Link href="/my-blueprints" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               🎯 내 청사진
+            </Link>
+            <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+              👤 프로필
             </Link>
             <Link href="/" className="px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg hover:from-gray-200 hover:to-gray-300 transition-all duration-200">
               🏠 홈으로
@@ -70,9 +135,46 @@ export default function GalleryPage() {
             다른 사람들의 성공 여정을 살펴보고 영감을 얻어보세요
           </p>
         </div>
+
+        {/* 필터링 및 정렬 */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row gap-6 items-center justify-between">
+            {/* 카테고리 필터 */}
+            <div className="flex flex-wrap gap-2">
+              {categories.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                    selectedCategory === category
+                      ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            {/* 정렬 옵션 */}
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-700">정렬:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="latest">최신순</option>
+                <option value="popular">인기순</option>
+                <option value="liked">좋아요순</option>
+                <option value="progress">달성률순</option>
+              </select>
+            </div>
+          </div>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {sampleBlueprints.map((blueprint) => (
+          {filteredBlueprints.map((blueprint) => (
             <Link
               key={blueprint.id}
               href={`/gallery/${blueprint.id}`}
@@ -84,13 +186,29 @@ export default function GalleryPage() {
                 {blueprint.title}
               </h3>
               
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">
-                    {blueprint.author.charAt(0)}
-                  </span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                    <span className="text-sm">{blueprint.authorAvatar}</span>
+                  </div>
+                  <span className="text-sm text-gray-600">by {blueprint.author}</span>
                 </div>
-                <span className="text-sm text-gray-600">by {blueprint.author}</span>
+                <div className="flex items-center gap-2">
+                  <FollowButton 
+                    targetUserId={blueprint.authorId}
+                    targetUsername={blueprint.author}
+                    size="sm"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
+                <span className="flex items-center gap-1">
+                  👁️ {blueprint.viewCount.toLocaleString()}
+                </span>
+                <span className="flex items-center gap-1">
+                  ❤️ {blueprint.likeCount}
+                </span>
               </div>
               
               <p className="text-gray-700 mb-6 leading-relaxed">

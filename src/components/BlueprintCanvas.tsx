@@ -19,6 +19,22 @@ import { useBlueprint } from '@/hooks/useBlueprint';
 import NodeDetailPanel from './NodeDetailPanel';
 
 import 'reactflow/dist/style.css';
+import { toast } from "sonner";
+import AIBlueprintWizard from './AIBlueprintWizard';
+
+interface GeneratedNode {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  position: { x: number; y: number };
+}
+
+interface GeneratedEdge {
+  id: string;
+  source: string;
+  target: string;
+}
 
 interface BlueprintCanvasProps {
   initialNodes?: Node[];
@@ -134,6 +150,7 @@ export default function BlueprintCanvas({
   const [selectedNodeType, setSelectedNodeType] = useState<NodeType>(NodeType.TASK);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
+  const [showAIWizard, setShowAIWizard] = useState(false);
   
   // 저장된 청사진이 있으면 그것을 사용, 없으면 초기값 사용
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultNodes);
@@ -247,12 +264,65 @@ export default function BlueprintCanvas({
     );
   }, [setNodes]);
 
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveForm, setSaveForm] = useState({
+    title: '',
+    description: '',
+    category: '',
+    privacy: 'private' as 'private' | 'unlisted' | 'followers' | 'public'
+  });
+
   const handleSave = useCallback(() => {
-    const title = prompt('청사진 제목을 입력하세요:', blueprint.title);
-    if (title) {
-      blueprint.saveBlueprint(title);
-    }
+    setSaveForm({
+      title: blueprint.title || '새 청사진',
+      description: blueprint.description || '',
+      category: blueprint.category || '기타',
+      privacy: blueprint.privacy || 'private'
+    });
+    setShowSaveModal(true);
   }, [blueprint]);
+
+  const handleSaveConfirm = useCallback(async () => {
+    if (saveForm.title.trim()) {
+      try {
+        // 새로운 청사진인 경우 고유 ID 생성
+        const newBlueprintId = blueprintId === 'default' && !blueprint.title ? 
+          `blueprint-${Date.now()}` : blueprintId;
+        
+        await blueprint.saveBlueprint({
+          title: saveForm.title,
+          description: saveForm.description,
+          category: saveForm.category,
+          privacy: saveForm.privacy
+        }, newBlueprintId);
+        
+        setShowSaveModal(false);
+        
+        // 성공 토스트 표시
+        toast.success("청사진이 성공적으로 저장되었습니다!", {
+          description: `"${saveForm.title}"이(가) ${saveForm.privacy === 'private' ? '비공개로' : 
+            saveForm.privacy === 'public' ? '공개로' : 
+            saveForm.privacy === 'followers' ? '팔로워에게만' : '링크 공유로'} 저장되었습니다.`,
+          duration: 4000,
+          action: {
+            label: "목록 보기",
+            onClick: () => window.location.href = '/my-blueprints'
+          },
+        });
+
+        // 새 청사진으로 저장된 경우 URL 업데이트
+        if (newBlueprintId !== blueprintId && newBlueprintId) {
+          window.history.replaceState({}, '', `/blueprint?id=${newBlueprintId.replace('blueprint-', '')}`);
+        }
+      } catch (error) {
+        console.error('Save failed:', error);
+        toast.error("저장에 실패했습니다", {
+          description: "다시 시도해주세요.",
+          duration: 4000,
+        });
+      }
+    }
+  }, [blueprint, saveForm, blueprintId]);
 
   const handleReset = useCallback(() => {
     if (confirm('청사진을 초기화하시겠습니까? 저장되지 않은 변경사항이 사라집니다.')) {
@@ -262,12 +332,59 @@ export default function BlueprintCanvas({
     }
   }, [setNodes, setEdges]);
 
+  const handleAIBlueprintGenerated = useCallback((aiNodes: GeneratedNode[], aiEdges: GeneratedEdge[]) => {
+    // AI에서 생성된 노드들을 React Flow 형식으로 변환
+    const convertedNodes = aiNodes.map(node => {
+      const icon = getNodeIcon(node.type);
+      const gradient = getNodeColor(node.type);
+      
+      return {
+        id: node.id,
+        type: node.type === NodeType.VALUE ? 'input' : 'default',
+        data: {
+          label: `${icon} ${node.title}`,
+          originalLabel: node.title,
+          nodeType: node.type,
+          description: node.description || '',
+          progress: 0,
+          completed: false,
+          priority: 'medium' as const,
+          tags: [] as string[],
+          dueDate: '',
+        },
+        position: node.position,
+        style: {
+          background: gradient,
+          border: '2px solid rgba(255,255,255,0.2)',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          minWidth: '200px',
+          minHeight: '60px',
+          color: 'white',
+          fontWeight: '600',
+          fontSize: '14px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          backdropFilter: 'blur(8px)',
+        },
+      };
+    });
+
+    const convertedEdges = aiEdges.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+    }));
+
+    setNodes(convertedNodes);
+    setEdges(convertedEdges);
+  }, [setNodes, setEdges]);
+
   return (
     <div className="w-full h-full flex flex-col">
       {/* 툴바 */}
       {editable && (
-        <div className="bg-white/90 backdrop-blur-sm border-b border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between p-4">
+        <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm relative z-10">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 gap-4">
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-700">노드 타입:</span>
@@ -291,6 +408,13 @@ export default function BlueprintCanvas({
                 >
                   <span>➕</span>
                   노드 추가
+                </button>
+                <button 
+                  onClick={() => setShowAIWizard(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <span>🤖</span>
+                  AI 생성
                 </button>
                 <button 
                   onClick={handleSave}
@@ -353,6 +477,110 @@ export default function BlueprintCanvas({
         onUpdate={handleNodeUpdate}
         editable={editable}
       />
+
+      {/* 저장 모달 */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+            <div className="bg-gradient-to-r from-green-600 to-green-700 p-6 text-white">
+              <h2 className="text-2xl font-bold">청사진 저장</h2>
+            </div>
+            
+            <div className="flex-1 p-6 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">제목</label>
+                <input
+                  type="text"
+                  value={saveForm.title}
+                  onChange={(e) => setSaveForm({ ...saveForm, title: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all duration-200"
+                  placeholder="청사진 제목을 입력하세요"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">설명</label>
+                <textarea
+                  value={saveForm.description}
+                  onChange={(e) => setSaveForm({ ...saveForm, description: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all duration-200 resize-none"
+                  placeholder="청사진에 대한 설명을 입력하세요"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">카테고리</label>
+                <select
+                  value={saveForm.category}
+                  onChange={(e) => setSaveForm({ ...saveForm, category: e.target.value })}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 transition-all duration-200"
+                >
+                  <option value="기타">기타</option>
+                  <option value="창업">창업</option>
+                  <option value="학습">학습</option>
+                  <option value="건강">건강</option>
+                  <option value="창작">창작</option>
+                  <option value="자기계발">자기계발</option>
+                  <option value="커리어">커리어</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">공개 설정</label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'private', label: '🔒 비공개', desc: '본인만 볼 수 있습니다' },
+                    { value: 'unlisted', label: '🔗 링크 공유', desc: '링크를 아는 사람만 접근할 수 있습니다' },
+                    { value: 'followers', label: '👥 팔로워 공개', desc: '팔로워들만 볼 수 있습니다' },
+                    { value: 'public', label: '🌐 전체 공개', desc: '누구나 볼 수 있고 갤러리에 노출됩니다' }
+                  ].map((option) => (
+                    <label key={option.value} className="flex items-start gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-green-300 cursor-pointer transition-colors">
+                      <input
+                        type="radio"
+                        name="privacy"
+                        value={option.value}
+                        checked={saveForm.privacy === option.value}
+                        onChange={(e) => setSaveForm({ ...saveForm, privacy: e.target.value as 'private' | 'unlisted' | 'followers' | 'public' })}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="font-medium text-gray-900">{option.label}</div>
+                        <div className="text-sm text-gray-600">{option.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex-shrink-0 p-6 bg-gray-50 border-t border-gray-100 flex gap-3">
+              <button
+                onClick={handleSaveConfirm}
+                disabled={!saveForm.title.trim()}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-green-700 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed"
+                title={!saveForm.title.trim() ? "제목을 입력해주세요" : ""}
+              >
+                💾 {!saveForm.title.trim() ? '제목을 입력하세요' : '저장'}
+              </button>
+              <button
+                onClick={() => setShowSaveModal(false)}
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-gray-400 hover:bg-gray-50 transition-all duration-200"
+              >
+                ❌ 취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* AI 청사진 위저드 */}
+      {showAIWizard && (
+        <AIBlueprintWizard
+          onBlueprintGenerated={handleAIBlueprintGenerated}
+          onClose={() => setShowAIWizard(false)}
+        />
+      )}
     </div>
   );
 }

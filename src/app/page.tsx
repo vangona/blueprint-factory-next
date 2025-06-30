@@ -15,11 +15,14 @@ export default function Home() {
             </h1>
           </div>
           <nav className="hidden sm:flex gap-6">
-            <Link href="/blueprint" className="text-gray-600 hover:text-blue-600 transition-colors">
+            <Link href="/my-blueprints" className="text-gray-600 hover:text-blue-600 transition-colors">
               내 청사진
             </Link>
             <Link href="/gallery" className="text-gray-600 hover:text-blue-600 transition-colors">
               갤러리
+            </Link>
+            <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors">
+              프로필
             </Link>
           </nav>
         </div>
