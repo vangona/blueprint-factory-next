@@ -13,6 +13,8 @@ import {
   type Node,
   type Edge,
   BackgroundVariant,
+  useReactFlow,
+  ReactFlowProvider,
 } from 'reactflow';
 import { NodeType } from '@/types/blueprint';
 import { useBlueprint } from '@/hooks/useBlueprint';
@@ -140,13 +142,14 @@ const defaultEdges: Edge[] = [
   { id: 'e3-4', source: '3', target: '4' },
 ];
 
-export default function BlueprintCanvas({ 
+function BlueprintCanvasInner({ 
   initialNodes, 
   initialEdges,
   editable = true,
   blueprintId
 }: BlueprintCanvasProps) {
   const blueprint = useBlueprint(blueprintId);
+  const { fitView } = useReactFlow();
   const [selectedNodeType, setSelectedNodeType] = useState<NodeType>(NodeType.TASK);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
@@ -332,6 +335,53 @@ export default function BlueprintCanvas({
     }
   }, [setNodes, setEdges]);
 
+  const handleAutoLayout = useCallback(() => {
+    const nodesByType: Record<string, Node[]> = {};
+    
+    // 노드 타입별로 그룹화
+    nodes.forEach(node => {
+      const nodeType = node.data.nodeType;
+      if (!nodesByType[nodeType]) {
+        nodesByType[nodeType] = [];
+      }
+      nodesByType[nodeType].push(node);
+    });
+
+    // 타입별 순서 정의 (위에서 아래로)
+    const typeOrder = [NodeType.VALUE, NodeType.LONG_GOAL, NodeType.SHORT_GOAL, NodeType.PLAN, NodeType.TASK];
+    
+    const yOffset = 50; // 시작 Y 위치
+    const levelSpacing = 100; // 레벨 간 간격
+    const nodeSpacing = 280; // 노드 간 간격
+    
+    const updatedNodes = nodes.map(node => {
+      const nodeType = node.data.nodeType;
+      const typeIndex = typeOrder.indexOf(nodeType);
+      const nodesOfType = nodesByType[nodeType] || [];
+      const nodeIndex = nodesOfType.findIndex(n => n.id === node.id);
+      
+      // X 위치: 노드들을 수평으로 배치
+      const totalWidth = (nodesOfType.length - 1) * nodeSpacing;
+      const startX = Math.max(50, (window.innerWidth - totalWidth) / 2);
+      const x = startX + nodeIndex * nodeSpacing;
+      
+      // Y 위치: 타입별로 레벨 배치
+      const y = yOffset + typeIndex * levelSpacing;
+      
+      return {
+        ...node,
+        position: { x, y }
+      };
+    });
+
+    setNodes(updatedNodes);
+    
+    // 레이아웃 적용 후 뷰 맞추기
+    setTimeout(() => {
+      fitView({ padding: 50, duration: 800 });
+    }, 100);
+  }, [nodes, setNodes, fitView]);
+
   const handleAIBlueprintGenerated = useCallback((aiNodes: GeneratedNode[], aiEdges: GeneratedEdge[]) => {
     // AI에서 생성된 노드들을 React Flow 형식으로 변환
     const convertedNodes = aiNodes.map(node => {
@@ -382,48 +432,62 @@ export default function BlueprintCanvas({
   return (
     <div className="w-full h-full flex flex-col">
       {/* 툴바 */}
-      {editable && (
-        <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm relative z-10">
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700">노드 타입:</span>
-                <select 
-                  value={selectedNodeType} 
-                  onChange={(e) => setSelectedNodeType(e.target.value as NodeType)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value={NodeType.VALUE}>🌟 가치관</option>
-                  <option value={NodeType.LONG_GOAL}>🎯 장기목표</option>
-                  <option value={NodeType.SHORT_GOAL}>📅 단기목표</option>
-                  <option value={NodeType.PLAN}>📋 계획</option>
-                  <option value={NodeType.TASK}>✅ 할일</option>
-                </select>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={addNewNode}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  <span>➕</span>
-                  노드 추가
-                </button>
-                <button 
-                  onClick={() => setShowAIWizard(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
-                >
-                  <span>🤖</span>
-                  AI 생성
-                </button>
-                <button 
-                  onClick={handleSave}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={blueprint.isSaving}
-                >
-                  <span>💾</span>
-                  {blueprint.isSaving ? '저장 중...' : '저장'}
-                </button>
+      <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm relative z-10">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 gap-4">
+          <div className="flex items-center gap-4">
+            {editable && (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-700">노드 타입:</span>
+                  <select 
+                    value={selectedNodeType} 
+                    onChange={(e) => setSelectedNodeType(e.target.value as NodeType)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value={NodeType.VALUE}>🌟 가치관</option>
+                    <option value={NodeType.LONG_GOAL}>🎯 장기목표</option>
+                    <option value={NodeType.SHORT_GOAL}>📅 단기목표</option>
+                    <option value={NodeType.PLAN}>📋 계획</option>
+                    <option value={NodeType.TASK}>✅ 할일</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={addNewNode}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <span>➕</span>
+                    노드 추가
+                  </button>
+                  <button 
+                    onClick={() => setShowAIWizard(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                  >
+                    <span>🤖</span>
+                    AI 생성
+                  </button>
+                  <button 
+                    onClick={handleSave}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={blueprint.isSaving}
+                  >
+                    <span>💾</span>
+                    {blueprint.isSaving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={handleAutoLayout}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm hover:shadow-md"
+              >
+                <span>🎯</span>
+                자동 정리
+              </button>
+              {editable && (
                 <button 
                   onClick={handleReset}
                   className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
@@ -431,24 +495,24 @@ export default function BlueprintCanvas({
                   <span>🔄</span>
                   초기화
                 </button>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <span>💡</span>
-                <span>노드 클릭: 상세 정보 | 더블클릭: 빠른 편집</span>
-              </div>
-              {blueprint.lastSaved && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg">
-                  <span>✓</span>
-                  <span>저장됨: {blueprint.lastSaved.toLocaleTimeString()}</span>
-                </div>
               )}
             </div>
           </div>
+          
+          <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <span>💡</span>
+              <span>노드 클릭: 상세 정보{editable ? ' | 더블클릭: 빠른 편집' : ''}</span>
+            </div>
+            {blueprint.lastSaved && editable && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg">
+                <span>✓</span>
+                <span>저장됨: {blueprint.lastSaved.toLocaleTimeString()}</span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* React Flow 캔버스 */}
       <div className="flex-1">
@@ -582,5 +646,13 @@ export default function BlueprintCanvas({
         />
       )}
     </div>
+  );
+}
+
+export default function BlueprintCanvas(props: BlueprintCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <BlueprintCanvasInner {...props} />
+    </ReactFlowProvider>
   );
 }
