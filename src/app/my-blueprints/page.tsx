@@ -195,13 +195,13 @@ export default function MyBlueprintsPage() {
 
                 <div className="flex gap-2">
                   <Link
-                    href={`/blueprint?id=${blueprint.id}`}
+                    href={`/blueprint?id=${blueprint.id.replace('blueprint-', '')}`}
                     className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-center text-sm font-medium"
                   >
                     ✏️ 편집
                   </Link>
                   <Link
-                    href={`/blueprint/${blueprint.id}/view`}
+                    href={`/blueprint?id=${blueprint.id.replace('blueprint-', '')}&view=true`}
                     className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-all duration-200 text-center text-sm font-medium"
                   >
                     👁️ 보기

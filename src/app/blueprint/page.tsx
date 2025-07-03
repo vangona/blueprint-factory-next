@@ -8,6 +8,7 @@ import BlueprintCanvas from '@/components/BlueprintCanvas';
 function BlueprintContent() {
   const searchParams = useSearchParams();
   const blueprintId = searchParams.get('id') || 'default';
+  const isViewMode = searchParams.get('view') === 'true';
     return (
       <div className="w-full h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Header */}
@@ -22,7 +23,7 @@ function BlueprintContent() {
               </Link>
               <div className="text-gray-400">|</div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                내 청사진
+                {isViewMode ? '청사진 보기' : '내 청사진'}
               </h1>
             </div>
             
@@ -45,7 +46,7 @@ function BlueprintContent() {
 
         {/* Blueprint Canvas */}
         <div className="w-full h-[calc(100vh-80px)]">
-          <BlueprintCanvas blueprintId={blueprintId} />
+          <BlueprintCanvas blueprintId={blueprintId} editable={!isViewMode} />
         </div>
       </div>
     );
