@@ -112,6 +112,9 @@ export default function MyBlueprintsPage() {
             <Link href="/branding" className="text-gray-600 hover:text-purple-600 transition-colors font-medium">
               ✨ 브랜딩
             </Link>
+            <Link href="/analysis" className="text-gray-600 hover:text-indigo-600 transition-colors font-medium">
+              📊 분석
+            </Link>
             <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               👤 프로필
             </Link>
@@ -228,6 +231,13 @@ export default function MyBlueprintsPage() {
               >
                 ➕ 새 청사진 만들기
               </button>
+              
+              <Link
+                href="/analysis"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                📊 AI 심층 분석
+              </Link>
               
               {(() => {
                 const totalNodes = blueprints.reduce((sum, bp) => sum + bp.nodeCount, 0);

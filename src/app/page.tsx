@@ -26,6 +26,9 @@ export default function Home() {
             <Link href="/branding" className="text-gray-600 hover:text-purple-600 transition-colors">
               🎯 브랜딩
             </Link>
+            <Link href="/analysis" className="text-gray-600 hover:text-indigo-600 transition-colors">
+              📊 분석
+            </Link>
             <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors">
               프로필
             </Link>
@@ -71,6 +74,15 @@ export default function Home() {
             </Link>
             
             <Link
+              href="/analysis"
+              className="group border-2 border-indigo-300 text-indigo-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:border-indigo-500 hover:text-indigo-800 hover:shadow-lg hover:bg-indigo-50 min-w-48"
+            >
+              <span className="flex items-center gap-2">
+                📊 AI 심층 분석
+              </span>
+            </Link>
+            
+            <Link
               href="/gallery"
               className="group border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:border-blue-500 hover:text-blue-600 hover:shadow-lg min-w-48"
             >
@@ -81,7 +93,7 @@ export default function Home() {
           </div>
 
           {/* Features */}
-          <div className="grid md:grid-cols-4 gap-6 mt-20">
+          <div className="grid md:grid-cols-5 gap-6 mt-20">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
               <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
                 <span className="text-white text-xl">🎯</span>
@@ -109,6 +121,16 @@ export default function Home() {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">퍼스널 브랜딩</h3>
               <p className="text-gray-600 leading-relaxed text-sm">
                 AI가 청사진을 분석하여 나만의 독특한 브랜딩 문장을 생성해줍니다
+              </p>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                <span className="text-white text-xl">📊</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">AI 심층 분석</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                행동 패턴, 동기 요인, 성취 스타일을 분석하여 맞춤형 성장 전략을 제공합니다
               </p>
             </div>
 
