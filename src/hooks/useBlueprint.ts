@@ -63,8 +63,12 @@ export function useBlueprint(blueprintId?: string) {
     
     try {
       const id = customId || blueprintId || 'default';
+      
+      // blueprint- 접두사가 없으면 추가하여 storageKey 생성
+      const storageKey = id.startsWith('blueprint-') ? id : `blueprint-${id}`;
+      
       const blueprintData: SavedBlueprint = {
-        id,
+        id: storageKey, // storageKey를 그대로 저장
         title: saveData?.title || title,
         description: saveData?.description || description,
         privacy: saveData?.privacy || privacy,
@@ -74,7 +78,7 @@ export function useBlueprint(blueprintId?: string) {
         lastModified: new Date().toISOString(),
       };
       
-      localStorage.setItem(`${id}`, JSON.stringify(blueprintData));
+      localStorage.setItem(storageKey, JSON.stringify(blueprintData));
       setLastSaved(new Date());
       
       // 상태 업데이트
@@ -118,13 +122,14 @@ export function useBlueprint(blueprintId?: string) {
   // 자동 저장 (변경사항이 있을 때마다)
   useEffect(() => {
     if (nodes.length === 0 && edges.length === 0) return;
+    if (!blueprintId) return;
     
     const autoSaveTimer = setTimeout(() => {
       saveBlueprint();
     }, 2000); // 2초 후 자동 저장
 
     return () => clearTimeout(autoSaveTimer);
-  }, [nodes, edges, saveBlueprint]);
+  }, [nodes, edges, saveBlueprint, blueprintId]);
 
   // 초기 로드
   useEffect(() => {

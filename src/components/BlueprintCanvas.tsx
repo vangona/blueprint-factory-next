@@ -163,39 +163,43 @@ function BlueprintCanvasInner({
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [showAIWizard, setShowAIWizard] = useState(false);
   
-  // 저장된 청사진이 있으면 그것을 사용, 없으면 초기값 사용
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes || defaultNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges || defaultEdges);
+  // useBlueprint 훅의 상태를 직접 사용
+  const [localNodes, setLocalNodes, onNodesChange] = useNodesState(blueprint.nodes.length > 0 ? blueprint.nodes : (initialNodes || defaultNodes));
+  const [localEdges, setLocalEdges, onEdgesChange] = useEdgesState(blueprint.edges.length > 0 ? blueprint.edges : (initialEdges || defaultEdges));
+  
+  // 실제 사용할 nodes와 edges는 blueprint 상태 우선
+  const nodes = blueprint.nodes.length > 0 ? blueprint.nodes : localNodes;
+  const edges = blueprint.edges.length > 0 ? blueprint.edges : localEdges;
 
-  // 저장된 청사진 불러오기
+  // 로컬 상태 변경시 useBlueprint 훅으로 전달
   useEffect(() => {
-    if (blueprint.nodes.length > 0 && editable) {
-      setNodes(blueprint.nodes);
+    if (editable && localNodes.length > 0) {
+      blueprint.setNodes(localNodes);
     }
-  }, [blueprint.nodes, setNodes, editable]);
-
-  useEffect(() => {
-    if (blueprint.edges.length > 0 && editable) {
-      setEdges(blueprint.edges);
-    }
-  }, [blueprint.edges, setEdges, editable]);
-
-  // 노드/엣지 변경시 저장 상태 업데이트
-  useEffect(() => {
-    if (editable && nodes.length > 0) {
-      blueprint.setNodes(nodes);
-    }
-  }, [nodes, blueprint, editable]);
+  }, [localNodes, blueprint, editable]);
 
   useEffect(() => {
-    if (editable && edges.length > 0) {
-      blueprint.setEdges(edges);
+    if (editable) {
+      blueprint.setEdges(localEdges);
     }
-  }, [edges, blueprint, editable]);
+  }, [localEdges, blueprint, editable]);
+
+  // blueprint 상태가 변경되면 로컬 상태 업데이트
+  useEffect(() => {
+    if (blueprint.nodes.length > 0) {
+      setLocalNodes(blueprint.nodes);
+    }
+  }, [blueprint.nodes, setLocalNodes]);
+
+  useEffect(() => {
+    if (blueprint.edges.length > 0) {
+      setLocalEdges(blueprint.edges);
+    }
+  }, [blueprint.edges, setLocalEdges]);
 
   const onConnect: OnConnect = useCallback(
-    (params) => setEdges((eds) => addEdge(params, eds)),
-    [setEdges],
+    (params) => setLocalEdges((eds) => addEdge(params, eds)),
+    [setLocalEdges],
   );
 
   const addNewNode = useCallback(() => {
@@ -210,8 +214,8 @@ function BlueprintCanvasInner({
       0,
       false
     );
-    setNodes((nds) => [...nds, newNode]);
-  }, [selectedNodeType, setNodes]);
+    setLocalNodes((nds) => [...nds, newNode]);
+  }, [selectedNodeType, setLocalNodes]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
     setSelectedNode(node);
@@ -223,7 +227,7 @@ function BlueprintCanvasInner({
     
     const newLabel = prompt('새로운 내용을 입력하세요:', node.data.label);
     if (newLabel) {
-      setNodes((nds) =>
+      setLocalNodes((nds) =>
         nds.map((n) =>
           n.id === node.id
             ? { ...n, data: { ...n.data, label: newLabel }, style: getNodeStyle({ ...n, data: { ...n.data, label: newLabel } }) }
@@ -231,10 +235,10 @@ function BlueprintCanvasInner({
         )
       );
     }
-  }, [setNodes, editable]);
+  }, [setLocalNodes, editable]);
 
   const handleNodeUpdate = useCallback((nodeId: string, updates: Partial<Node['data']>) => {
-    setNodes((nds) =>
+    setLocalNodes((nds) =>
       nds.map((n) => {
         if (n.id === nodeId) {
           const updatedData = { ...n.data, ...updates };
@@ -273,7 +277,7 @@ function BlueprintCanvasInner({
         return n;
       })
     );
-  }, [setNodes]);
+  }, [setLocalNodes]);
 
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [saveForm, setSaveForm] = useState({
@@ -296,9 +300,9 @@ function BlueprintCanvasInner({
   const handleSaveConfirm = useCallback(async () => {
     if (saveForm.title.trim()) {
       try {
-        // 새로운 청사진인 경우 고유 ID 생성
+        // 새로운 청사진인 경우 고유 ID 생성 (blueprint- 접두사 없이)
         const newBlueprintId = blueprintId === 'default' && !blueprint.title ? 
-          `blueprint-${Date.now()}` : blueprintId;
+          `${Date.now()}` : blueprintId;
         
         await blueprint.saveBlueprint({
           title: saveForm.title,
@@ -338,10 +342,10 @@ function BlueprintCanvasInner({
   const handleReset = useCallback(() => {
     if (confirm('청사진을 초기화하시겠습니까? 저장되지 않은 변경사항이 사라집니다.')) {
       localStorage.removeItem('blueprint-default');
-      setNodes(defaultNodes);
-      setEdges(defaultEdges);
+      setLocalNodes(defaultNodes);
+      setLocalEdges(defaultEdges);
     }
-  }, [setNodes, setEdges]);
+  }, [setLocalNodes, setLocalEdges]);
 
   const handleAutoLayout = useCallback(() => {
     if (nodes.length === 0) return;
@@ -483,13 +487,13 @@ function BlueprintCanvasInner({
       });
     }
 
-    setNodes(updatedNodes);
+    setLocalNodes(updatedNodes);
     
     // 레이아웃 적용 후 뷰 맞추기
     setTimeout(() => {
       fitView({ padding: 50, duration: 800 });
     }, 100);
-  }, [nodes, edges, setNodes, fitView]);
+  }, [nodes, edges, setLocalNodes, fitView]);
 
   const handleAIBlueprintGenerated = useCallback((aiNodes: GeneratedNode[], aiEdges: GeneratedEdge[]) => {
     // AI에서 생성된 노드들을 React Flow 형식으로 변환
@@ -534,9 +538,9 @@ function BlueprintCanvasInner({
       target: edge.target,
     }));
 
-    setNodes(convertedNodes);
-    setEdges(convertedEdges);
-  }, [setNodes, setEdges]);
+    setLocalNodes(convertedNodes);
+    setLocalEdges(convertedEdges);
+  }, [setLocalNodes, setLocalEdges]);
 
   return (
     <div className="w-full h-full flex flex-col">

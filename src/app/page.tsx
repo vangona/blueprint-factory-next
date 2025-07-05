@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 
 export default function Home() {
@@ -20,6 +22,9 @@ export default function Home() {
             </Link>
             <Link href="/gallery" className="text-gray-600 hover:text-blue-600 transition-colors">
               갤러리
+            </Link>
+            <Link href="/personal-branding" className="text-gray-600 hover:text-purple-600 transition-colors">
+              🎯 브랜딩
             </Link>
             <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors">
               프로필
@@ -45,14 +50,23 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Link
-              href="/blueprint"
+            <button
+              onClick={() => window.location.href = `/blueprint?id=${Date.now()}`}
               className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl min-w-48"
             >
               <span className="relative z-10 flex items-center gap-2">
                 🚀 청사진 만들기
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </button>
+            
+            <Link
+              href="/personal-branding"
+              className="group border-2 border-purple-300 text-purple-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:border-purple-500 hover:text-purple-800 hover:shadow-lg hover:bg-purple-50 min-w-48"
+            >
+              <span className="flex items-center gap-2">
+                ✨ 브랜딩 문장 생성
+              </span>
             </Link>
             
             <Link
@@ -66,33 +80,43 @@ export default function Home() {
           </div>
 
           {/* Features */}
-          <div className="grid md:grid-cols-3 gap-8 mt-20">
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                <span className="text-white text-2xl">🎯</span>
+          <div className="grid md:grid-cols-4 gap-6 mt-20">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                <span className="text-white text-xl">🎯</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">체계적 목표 관리</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">체계적 목표 관리</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
                 가치관부터 할일까지 5단계 계층으로 체계적으로 관리하고 연결점을 시각화합니다
               </p>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                <span className="text-white text-2xl">📊</span>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                <span className="text-white text-xl">📊</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">실시간 진행률</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">실시간 진행률</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
                 각 목표의 진행률을 실시간으로 추적하고 시각적으로 확인할 수 있습니다
               </p>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
-              <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                <span className="text-white text-2xl">💡</span>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                <span className="text-white text-xl">✨</span>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">영감 공유</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">퍼스널 브랜딩</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
+                AI가 청사진을 분석하여 나만의 독특한 브랜딩 문장을 생성해줍니다
+              </p>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300">
+              <div className="w-14 h-14 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl flex items-center justify-center mb-4 mx-auto">
+                <span className="text-white text-xl">💡</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">영감 공유</h3>
+              <p className="text-gray-600 leading-relaxed text-sm">
                 다른 사람들의 성공 청사진에서 영감을 얻고 자신만의 길을 찾아보세요
               </p>
             </div>

@@ -100,11 +100,17 @@ export default function MyBlueprintsPage() {
           </div>
           
           <nav className="flex items-center gap-4">
-            <Link href="/blueprint" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+            <button 
+              onClick={() => window.location.href = `/blueprint?id=${Date.now()}`}
+              className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+            >
               🎯 새 청사진
-            </Link>
+            </button>
             <Link href="/gallery" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               🎨 갤러리
+            </Link>
+            <Link href="/personal-branding" className="text-gray-600 hover:text-purple-600 transition-colors font-medium">
+              ✨ 브랜딩
             </Link>
             <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               👤 프로필
@@ -134,12 +140,12 @@ export default function MyBlueprintsPage() {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-4">아직 청사진이 없습니다</h3>
             <p className="text-gray-600 mb-8">첫 번째 청사진을 만들어보세요!</p>
-            <Link
-              href="/blueprint"
+            <button
+              onClick={() => window.location.href = `/blueprint?id=${Date.now()}`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               🚀 청사진 만들기
-            </Link>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -212,15 +218,48 @@ export default function MyBlueprintsPage() {
           </div>
         )}
 
-        {/* 새 청사진 만들기 버튼 */}
+        {/* 액션 버튼들 */}
         {blueprints.length > 0 && (
-          <div className="text-center mt-12">
-            <Link
-              href="/blueprint"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              ➕ 새 청사진 만들기
-            </Link>
+          <div className="text-center mt-12 space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button
+                onClick={() => window.location.href = `/blueprint?id=${Date.now()}`}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                ➕ 새 청사진 만들기
+              </button>
+              
+              {(() => {
+                const totalNodes = blueprints.reduce((sum, bp) => sum + bp.nodeCount, 0);
+                return totalNodes >= 10 && (
+                  <Link
+                    href="/personal-branding"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    ✨ 브랜딩 문장 생성하기
+                  </Link>
+                );
+              })()}
+            </div>
+            
+            {(() => {
+              const totalNodes = blueprints.reduce((sum, bp) => sum + bp.nodeCount, 0);
+              if (totalNodes >= 10) {
+                return (
+                  <p className="text-sm text-gray-600">
+                    💡 총 {totalNodes}개 노드로 개성 있는 브랜딩 문장을 만들 수 있습니다!
+                  </p>
+                );
+              } else {
+                return (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-md mx-auto">
+                    <p className="text-sm text-yellow-800">
+                      💡 브랜딩 문장 생성을 위해서는 총 10개 이상의 노드가 필요합니다 (현재: {totalNodes}개)
+                    </p>
+                  </div>
+                );
+              }
+            })()}
           </div>
         )}
       </div>

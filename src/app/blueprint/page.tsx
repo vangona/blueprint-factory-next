@@ -31,6 +31,12 @@ function BlueprintContent() {
               <Link href="/my-blueprints" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
                 📋 내 청사진 목록
               </Link>
+              <button 
+                onClick={() => window.location.href = `/blueprint?id=${Date.now()}`}
+                className="text-gray-600 hover:text-blue-600 transition-colors font-medium"
+              >
+                🎯 새 청사진
+              </button>
               <Link href="/gallery" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
                 🎨 갤러리
               </Link>
