@@ -19,10 +19,18 @@ import {
 import { NodeType } from '@/types/blueprint';
 import { useBlueprint } from '@/hooks/useBlueprint';
 import NodeDetailPanel from './NodeDetailPanel';
+import { stratify, tree, HierarchyNode } from 'd3-hierarchy';
 
 import 'reactflow/dist/style.css';
 import { toast } from "sonner";
 import AIBlueprintWizard from './AIBlueprintWizard';
+
+// d3-hierarchy를 위한 타입 정의
+interface TreeNode {
+  id: string;
+  parentId: string | null;
+  data: Node;
+}
 
 interface GeneratedNode {
   id: string;
@@ -336,43 +344,144 @@ function BlueprintCanvasInner({
   }, [setNodes, setEdges]);
 
   const handleAutoLayout = useCallback(() => {
-    const nodesByType: Record<string, Node[]> = {};
+    if (nodes.length === 0) return;
+
+    // 노드 타입별 우선순위 정의
+    const typeOrder: Record<string, number> = {
+      [NodeType.VALUE]: 0,
+      [NodeType.LONG_GOAL]: 1,
+      [NodeType.SHORT_GOAL]: 2,
+      [NodeType.PLAN]: 3,
+      [NodeType.TASK]: 4,
+    };
+
+    // 엣지로부터 부모-자식 관계 구성
+    const nodeMap = new Map(nodes.map(node => [node.id, node]));
+    const childToParent = new Map<string, string>();
     
-    // 노드 타입별로 그룹화
-    nodes.forEach(node => {
-      const nodeType = node.data.nodeType;
-      if (!nodesByType[nodeType]) {
-        nodesByType[nodeType] = [];
-      }
-      nodesByType[nodeType].push(node);
+    edges.forEach(edge => {
+      childToParent.set(edge.target, edge.source);
     });
 
-    // 타입별 순서 정의 (위에서 아래로)
-    const typeOrder = [NodeType.VALUE, NodeType.LONG_GOAL, NodeType.SHORT_GOAL, NodeType.PLAN, NodeType.TASK];
+    // 루트 노드 찾기 (부모가 없는 노드)
+    const rootNodes = nodes.filter(node => !childToParent.has(node.id));
     
-    const yOffset = 50; // 시작 Y 위치
-    const levelSpacing = 100; // 레벨 간 간격
-    const nodeSpacing = 280; // 노드 간 간격
-    
-    const updatedNodes = nodes.map(node => {
-      const nodeType = node.data.nodeType;
-      const typeIndex = typeOrder.indexOf(nodeType);
-      const nodesOfType = nodesByType[nodeType] || [];
-      const nodeIndex = nodesOfType.findIndex(n => n.id === node.id);
+    // 각 루트에 대해 트리 구조 생성
+    const trees = rootNodes.map(rootNode => {
+      const treeData: TreeNode[] = [];
+      const visited = new Set<string>();
       
-      // X 위치: 노드들을 수평으로 배치
-      const totalWidth = (nodesOfType.length - 1) * nodeSpacing;
-      const startX = Math.max(50, (window.innerWidth - totalWidth) / 2);
-      const x = startX + nodeIndex * nodeSpacing;
-      
-      // Y 위치: 타입별로 레벨 배치
-      const y = yOffset + typeIndex * levelSpacing;
-      
-      return {
-        ...node,
-        position: { x, y }
+      // DFS로 트리 구조 생성
+      const buildTree = (nodeId: string, parentId: string | null = null) => {
+        if (visited.has(nodeId)) return;
+        visited.add(nodeId);
+        
+        const node = nodeMap.get(nodeId);
+        if (!node) return;
+        
+        treeData.push({
+          id: nodeId,
+          parentId: parentId,
+          data: node,
+        });
+        
+        // 자식 노드 찾기
+        edges.forEach(edge => {
+          if (edge.source === nodeId) {
+            buildTree(edge.target, nodeId);
+          }
+        });
       };
+      
+      buildTree(rootNode.id);
+      
+      // d3-hierarchy로 트리 레이아웃 생성
+      try {
+        const root = stratify<TreeNode>()
+          .id(d => d.id)
+          .parentId(d => d.parentId)(treeData);
+        
+        // 트리 레이아웃 설정
+        const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        const isMobile = viewportWidth < 768;
+        
+        const treeLayout = tree<TreeNode>()
+          .size([isMobile ? 600 : 1000, 500])
+          .nodeSize([isMobile ? 180 : 250, 150])
+          .separation((a, b) => {
+            // 같은 레벨의 노드 간 간격
+            const aType = typeOrder[a.data.data.data.nodeType] || 0;
+            const bType = typeOrder[b.data.data.data.nodeType] || 0;
+            return aType === bType ? 1 : 1.2;
+          });
+        
+        return treeLayout(root);
+      } catch (e) {
+        console.error('Tree layout error:', e);
+        return null;
+      }
+    }).filter(Boolean) as HierarchyNode<TreeNode>[];
+
+    // 여러 트리를 나란히 배치
+    let xOffset = 100;
+    const updatedNodes: Node[] = [];
+    
+    trees.forEach((tree) => {
+      if (!tree) return;
+      
+      // 트리의 너비 계산
+      let minX = Infinity;
+      let maxX = -Infinity;
+      
+      tree.descendants().forEach((d) => {
+        if (d.x !== undefined) {
+          minX = Math.min(minX, d.x);
+          maxX = Math.max(maxX, d.x);
+        }
+      });
+      
+      const treeWidth = maxX - minX;
+      
+      // 노드 위치 업데이트
+      tree.descendants().forEach((d) => {
+        const node = d.data.data;
+        
+        // x, y가 undefined일 경우 기본값 사용
+        const x = d.x ?? 0;
+        const y = d.y ?? 0;
+        
+        updatedNodes.push({
+          ...node,
+          position: {
+            x: xOffset + x,
+            y: 100 + y,
+          },
+        });
+      });
+      
+      xOffset += treeWidth + 150; // 다음 트리와의 간격
     });
+
+    // 레이아웃에 포함되지 않은 노드들 처리
+    const layoutNodeIds = new Set(updatedNodes.map(n => n.id));
+    const orphanNodes = nodes.filter(n => !layoutNodeIds.has(n.id));
+    
+    if (orphanNodes.length > 0) {
+      const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+      const isMobile = viewportWidth < 768;
+      const nodeSpacing = isMobile ? 150 : 200;
+      
+      orphanNodes.forEach((node, index) => {
+        const typeLevel = typeOrder[node.data.nodeType] || 0;
+        updatedNodes.push({
+          ...node,
+          position: {
+            x: 100 + (index % 4) * nodeSpacing,
+            y: 100 + typeLevel * 150 + Math.floor(index / 4) * 100,
+          },
+        });
+      });
+    }
 
     setNodes(updatedNodes);
     
@@ -380,7 +489,7 @@ function BlueprintCanvasInner({
     setTimeout(() => {
       fitView({ padding: 50, duration: 800 });
     }, 100);
-  }, [nodes, setNodes, fitView]);
+  }, [nodes, edges, setNodes, fitView]);
 
   const handleAIBlueprintGenerated = useCallback((aiNodes: GeneratedNode[], aiEdges: GeneratedEdge[]) => {
     // AI에서 생성된 노드들을 React Flow 형식으로 변환
@@ -432,17 +541,17 @@ function BlueprintCanvasInner({
   return (
     <div className="w-full h-full flex flex-col">
       {/* 툴바 */}
-      <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm relative z-10">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-4 gap-4">
-          <div className="flex items-center gap-4">
+      <div className="bg-white/95 backdrop-blur-sm border-b border-gray-200 shadow-sm relative z-10 overflow-x-auto">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between p-2 sm:p-4 gap-3 sm:gap-4 min-w-max lg:min-w-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
             {editable && (
               <>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-gray-700">노드 타입:</span>
+                  <span className="hidden sm:inline text-sm font-medium text-gray-700 whitespace-nowrap">노드 타입:</span>
                   <select 
                     value={selectedNodeType} 
                     onChange={(e) => setSelectedNodeType(e.target.value as NodeType)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg bg-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value={NodeType.VALUE}>🌟 가치관</option>
                     <option value={NodeType.LONG_GOAL}>🎯 장기목표</option>
@@ -452,28 +561,31 @@ function BlueprintCanvasInner({
                   </select>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                   <button 
                     onClick={addNewNode}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm hover:shadow-md text-xs sm:text-sm"
                   >
-                    <span>➕</span>
-                    노드 추가
+                    <span className="text-sm sm:text-base">➕</span>
+                    <span className="hidden sm:inline">노드 추가</span>
+                    <span className="sm:hidden">추가</span>
                   </button>
                   <button 
                     onClick={() => setShowAIWizard(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-lg hover:from-purple-600 hover:to-blue-600 transition-all duration-200 shadow-sm hover:shadow-md text-xs sm:text-sm"
                   >
-                    <span>🤖</span>
-                    AI 생성
+                    <span className="text-sm sm:text-base">🤖</span>
+                    <span className="hidden sm:inline">AI 생성</span>
+                    <span className="sm:hidden">AI</span>
                   </button>
                   <button 
                     onClick={handleSave}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
                     disabled={blueprint.isSaving}
                   >
-                    <span>💾</span>
-                    {blueprint.isSaving ? '저장 중...' : '저장'}
+                    <span className="text-sm sm:text-base">💾</span>
+                    <span className="hidden sm:inline">{blueprint.isSaving ? '저장 중...' : '저장'}</span>
+                    <span className="sm:hidden">{blueprint.isSaving ? '...' : '저장'}</span>
                   </button>
                 </div>
               </>
@@ -482,18 +594,19 @@ function BlueprintCanvasInner({
             <div className="flex items-center gap-2">
               <button 
                 onClick={handleAutoLayout}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-sm hover:shadow-md text-xs sm:text-sm whitespace-nowrap"
               >
-                <span>🎯</span>
-                자동 정리
+                <span className="text-sm sm:text-base">🎯</span>
+                <span>자동 정리</span>
               </button>
               {editable && (
                 <button 
                   onClick={handleReset}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                  className="flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all duration-200 shadow-sm hover:shadow-md text-xs sm:text-sm"
                 >
-                  <span>🔄</span>
-                  초기화
+                  <span className="text-sm sm:text-base">🔄</span>
+                  <span className="hidden sm:inline">초기화</span>
+                  <span className="sm:hidden">초기화</span>
                 </button>
               )}
             </div>
