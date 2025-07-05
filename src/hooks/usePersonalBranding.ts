@@ -1,26 +1,20 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { analyzeBlueprintData, UserAnalysis } from '@/utils/brandingAnalysis';
+import { extractBrandingData, SimpleBrandingData, brandingTemplates } from '@/utils/simpleBrandingAnalysis';
 
 export interface BrandingStatement {
   text: string;
   style: string;
   reasoning: string;
-  confidence: number;
 }
 
 export interface BrandingResult {
   statements: BrandingStatement[];
-  analysisInsights: {
-    keyStrengths: string[];
-    uniqueElements: string[];
-    recommendedFocus: string;
-  };
 }
 
 export function usePersonalBranding() {
-  const [analysis, setAnalysis] = useState<UserAnalysis | null>(null);
+  const [brandingData, setBrandingData] = useState<SimpleBrandingData | null>(null);
   const [result, setResult] = useState<BrandingResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -60,14 +54,14 @@ export function usePersonalBranding() {
         throw new Error('저장된 청사진이 없습니다.');
       }
       
-      // 데이터 분석
-      const userAnalysis = analyzeBlueprintData(blueprints);
-      setAnalysis(userAnalysis);
+      // 브랜딩 데이터 추출
+      const extractedData = extractBrandingData(blueprints);
+      setBrandingData(extractedData);
       
       // 분석 시뮬레이션 (실제로는 즉시 완료)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      return userAnalysis;
+      return extractedData;
     } catch (error) {
       const message = error instanceof Error ? error.message : '분석 중 오류가 발생했습니다.';
       setError(message);
@@ -78,46 +72,44 @@ export function usePersonalBranding() {
   }, []);
 
   // AI 브랜딩 문장 생성
-  const generateBrandingStatements = useCallback(async (userAnalysis: UserAnalysis) => {
+  const generateBrandingStatements = useCallback(async (data: SimpleBrandingData) => {
     setIsGenerating(true);
     setError(null);
     
     try {
-      // AI API 호출 시뮬레이션 (실제로는 OpenAI API 호출)
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // 실제 AI API 호출 (LangChain 사용)
+      const response = await fetch('/api/generate-branding-langchain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandingData: data }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'AI 서비스 연결에 실패했습니다.');
+      }
+
+      const result = await response.json();
       
-      // 임시 결과 생성 (실제로는 AI가 생성)
-      const mockResult: BrandingResult = {
-        statements: [
-          {
-            text: generateMockStatement(userAnalysis, '전문적'),
-            style: '전문적',
-            reasoning: '사용자의 전문성과 체계적 접근을 강조한 문장입니다.',
-            confidence: 0.9
-          },
-          {
-            text: generateMockStatement(userAnalysis, '친근함'),
-            style: '친근함',
-            reasoning: '따뜻하고 접근하기 쉬운 이미지를 표현한 문장입니다.',
-            confidence: 0.85
-          },
-          {
-            text: generateMockStatement(userAnalysis, '창의적'),
-            style: '창의적',
-            reasoning: '독특하고 기억에 남는 개성적인 표현을 사용한 문장입니다.',
-            confidence: 0.8
-          }
-        ],
-        analysisInsights: {
-          keyStrengths: userAnalysis.uniqueStrengths,
-          uniqueElements: userAnalysis.goalPatterns,
-          recommendedFocus: userAnalysis.achievementType
-        }
-      };
-      
-      setResult(mockResult);
-      return mockResult;
+      setResult(result);
+      return result;
     } catch (error) {
+      // API 키가 설정되지 않은 경우 Mock 데이터로 폴백
+      if (error instanceof Error && (error.message.includes('API 키') || error.message.includes('401'))) {
+        console.warn('OpenAI API 키가 설정되지 않았습니다. Mock 데이터를 사용합니다.');
+        
+        // Mock 결과 생성
+        const mockResult: BrandingResult = {
+          statements: generateMockStatements(data)
+        };
+        
+        // Mock 데이터 사용시 지연 시간 추가 (UX를 위해)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        setResult(mockResult);
+        return mockResult;
+      }
+      
       const message = error instanceof Error ? error.message : '문장 생성 중 오류가 발생했습니다.';
       setError(message);
       throw error;
@@ -139,7 +131,7 @@ export function usePersonalBranding() {
 
   // 상태 초기화
   const reset = useCallback(() => {
-    setAnalysis(null);
+    setBrandingData(null);
     setResult(null);
     setError(null);
     setIsAnalyzing(false);
@@ -147,7 +139,7 @@ export function usePersonalBranding() {
   }, []);
 
   return {
-    analysis,
+    brandingData,
     result,
     isAnalyzing,
     isGenerating,
@@ -158,28 +150,45 @@ export function usePersonalBranding() {
   };
 }
 
-// 임시 문장 생성 함수 (실제로는 AI가 처리)
-function generateMockStatement(analysis: UserAnalysis, style: string): string {
-  const { coreValues, goalPatterns, uniqueStrengths, categories } = analysis;
+// Mock 브랜딩 문장 생성
+function generateMockStatements(data: SimpleBrandingData): BrandingStatement[] {
+  const statements: BrandingStatement[] = [];
   
-  const templates = {
-    '전문적': [
-      `${uniqueStrengths[0] || '목표지향'}을 바탕으로 ${categories[0] || '다양한 분야'}에서 ${goalPatterns[0] || '성과'}를 창출하는 전문가`,
-      `${coreValues[0] || '성장'}과 ${coreValues[1] || '도전'}을 핵심으로 ${categories[0] || '조직'}의 발전에 기여하는 리더`,
-      `체계적인 접근과 ${uniqueStrengths[0] || '실행력'}으로 ${goalPatterns[0] || '혁신'}을 이끄는 변화 주도자`
-    ],
-    '친근함': [
-      `${coreValues[0] || '소통'}을 통해 사람들과 함께 ${goalPatterns[0] || '성장'}해가는 따뜻한 동반자`,
-      `${categories[0] || '일상'}에서 ${coreValues[0] || '의미'}를 찾고 나누는 행복 전도사`,
-      `${uniqueStrengths[0] || '공감'}과 ${coreValues[0] || '이해'}로 주변을 밝게 만드는 긍정 에너지`
-    ],
-    '창의적': [
-      `${categories[0] || '경계'}를 넘나드는 ${uniqueStrengths[0] || '융합'} 사고로 새로운 가치를 창조하는 혁신가`,
-      `${coreValues[0] || '호기심'}과 ${goalPatterns[0] || '도전'}정신으로 미래를 그려가는 아이디어 메이커`,
-      `${uniqueStrengths[0] || '다양성'}과 ${coreValues[0] || '창조'}를 엮어 독특한 스토리를 만드는 크리에이터`
-    ]
-  };
+  // 성취 중심
+  if (data.achievements.length > 0 && data.identities.length > 0) {
+    statements.push({
+      text: brandingTemplates.identityAchievement(data.identities[0], data.achievements[0]),
+      style: '성취 중심',
+      reasoning: '주요 성취를 강조하여 전문성을 드러냅니다.'
+    });
+  }
   
-  const styleTemplates = templates[style as keyof typeof templates] || templates['전문적'];
-  return styleTemplates[Math.floor(Math.random() * styleTemplates.length)];
+  // 현재 활동 중심
+  if (data.currentActivities.length > 0 && data.identities.length > 0) {
+    statements.push({
+      text: brandingTemplates.identityActivity(data.identities[0], data.currentActivities[0]),
+      style: '현재 활동 중심',
+      reasoning: '현재 진행 중인 활동을 통해 역동성을 보여줍니다.'
+    });
+  }
+  
+  // 복합형
+  if (data.identities.length > 1) {
+    statements.push({
+      text: brandingTemplates.simple(data.identities.slice(0, 2)),
+      style: '복합형',
+      reasoning: '다양한 정체성을 균형있게 표현합니다.'
+    });
+  }
+  
+  // 기본 문장 (데이터가 부족한 경우)
+  if (statements.length === 0) {
+    statements.push({
+      text: '목표를 향해 성장하는 도전자',
+      style: '기본',
+      reasoning: '청사진 데이터가 부족하여 기본 문장을 제공합니다.'
+    });
+  }
+  
+  return statements;
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePersonalBranding } from '@/hooks/usePersonalBranding';
 
 interface BlueprintSummary {
   totalBlueprints: number;
@@ -14,6 +15,13 @@ interface BlueprintSummary {
 export default function PersonalBrandingPage() {
   const [blueprintData, setBlueprintData] = useState<BlueprintSummary | null>(null);
   const [currentStep, setCurrentStep] = useState<'intro' | 'analysis' | 'generation' | 'result'>('intro');
+  const { 
+    analyzeUserData, 
+    generateBrandingStatements, 
+    result: brandingResult,
+    error: brandingError,
+    reset: resetBranding
+  } = usePersonalBranding();
 
   useEffect(() => {
     // 클라이언트 환경에서만 실행
@@ -101,13 +109,28 @@ export default function PersonalBrandingPage() {
     };
   }, []);
 
-  const handleStartBranding = () => {
+  const handleStartBranding = async () => {
     if (blueprintData?.readyForBranding) {
-      setCurrentStep('analysis');
-      // 2초 후 자동으로 다음 단계로
-      setTimeout(() => setCurrentStep('generation'), 2000);
-      // 5초 후 결과 단계로
-      setTimeout(() => setCurrentStep('result'), 5000);
+      try {
+        setCurrentStep('analysis');
+        
+        // 데이터 분석 수행
+        const analysis = await analyzeUserData();
+        
+        // 분석 완료 후 생성 단계로
+        setCurrentStep('generation');
+        
+        // AI 브랜딩 문장 생성
+        await generateBrandingStatements(analysis);
+        
+        // 결과 표시
+        setCurrentStep('result');
+      } catch (error) {
+        console.error('브랜딩 생성 실패:', error);
+        alert(brandingError || '브랜딩 문장 생성 중 오류가 발생했습니다.');
+        setCurrentStep('intro');
+        resetBranding();
+      }
     } else {
       alert(`브랜딩 문장 생성을 위해서는 최소 10개 이상의 노드가 필요합니다. 현재 ${blueprintData?.totalNodes || 0}개`);
     }
@@ -319,7 +342,7 @@ export default function PersonalBrandingPage() {
           </div>
         )}
 
-        {currentStep === 'result' && (
+        {currentStep === 'result' && brandingResult && (
           <div className="space-y-8">
             <div className="text-center">
               <h2 className="text-3xl font-bold text-gray-800 mb-4">✨ 나만의 브랜딩 문장</h2>
@@ -327,24 +350,8 @@ export default function PersonalBrandingPage() {
             </div>
 
             <div className="space-y-6">
-              {/* 실제 데이터 기반 문장 생성 */}
-              {[
-                {
-                  text: `${blueprintData.categories[0] || '다양한 분야'}에서 체계적 접근으로 성과를 만드는 목표 지향적 실행가`,
-                  style: "전문적",
-                  reasoning: "사용자의 주요 관심 분야와 체계적 특성을 강조한 문장입니다."
-                },
-                {
-                  text: `${blueprintData.totalNodes}개의 꿈을 현실로 만들어가는 따뜻한 성장 동반자`,
-                  style: "친근함",
-                  reasoning: "사용자의 노드 수와 성장 지향적 특성을 친근하게 표현한 문장입니다."
-                },
-                {
-                  text: `${blueprintData.categories.length}개 분야를 아우르는 융합형 크리에이터`,
-                  style: "창의적",
-                  reasoning: "다양한 관심 분야를 가진 특성을 창의적으로 표현한 문장입니다."
-                }
-              ].map((statement, index) => (
+              {/* AI 생성 결과 표시 */}
+              {brandingResult.statements.map((statement, index) => (
                 <div key={index} className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-200">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -406,9 +413,21 @@ export default function PersonalBrandingPage() {
               ))}
             </div>
 
+            {/* 생성된 문장이 적으면 힌트 표시 */}
+            {brandingResult.statements.length < 3 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  💡 더 다양한 브랜딩 문장을 원하신다면 청사진에 더 많은 성취와 활동을 추가해보세요.
+                </p>
+              </div>
+            )}
+
             <div className="text-center space-y-4">
               <button
-                onClick={() => setCurrentStep('intro')}
+                onClick={() => {
+                  setCurrentStep('intro');
+                  resetBranding();
+                }}
                 className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-200"
               >
                 🔄 다시 생성하기
