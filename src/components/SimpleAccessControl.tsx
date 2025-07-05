@@ -113,18 +113,39 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
     return null;
   }
 
+  const currentUser = typeof window !== 'undefined' ? (() => {
+    try {
+      const userString = localStorage.getItem('current-user');
+      return userString ? JSON.parse(userString) : null;
+    } catch {
+      return null;
+    }
+  })() : null;
+
   return (
     <div className="fixed top-4 right-4 z-50">
       <button
         onClick={onToggle}
-        className="px-3 py-1 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors shadow-lg"
+        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors shadow-lg ${
+          currentUser 
+            ? 'bg-green-500 hover:bg-green-600 text-white' 
+            : 'bg-red-500 hover:bg-red-600 text-white'
+        }`}
       >
-        🔧 Dev Auth
+        🔧 {currentUser ? `${currentUser.username}` : '로그인 필요'}
       </button>
       
       {isVisible && (
         <div className="absolute top-12 right-0 bg-white rounded-lg shadow-xl border p-4 min-w-[200px]">
-          <h3 className="font-medium mb-3 text-gray-900">개발용 로그인</h3>
+          <div className="mb-3">
+            <h3 className="font-medium text-gray-900">개발용 로그인</h3>
+            {currentUser && (
+              <div className="text-xs text-gray-500 mt-1">
+                현재: <span className="font-medium text-gray-700">{currentUser.username}</span>
+                {currentUser.role === 'admin' && <span className="text-blue-600"> (관리자)</span>}
+              </div>
+            )}
+          </div>
           <div className="space-y-2">
             <button
               onClick={() => {
@@ -135,9 +156,13 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
                 }));
                 window.location.reload();
               }}
-              className="block w-full px-3 py-2 text-left bg-gray-100 rounded hover:bg-gray-200 transition-colors text-sm"
+              className={`block w-full px-3 py-2 text-left rounded transition-colors text-sm ${
+                currentUser?.id === 'user-1' 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
             >
-              👤 일반 사용자
+              👤 일반 사용자 {currentUser?.id === 'user-1' && '✓'}
             </button>
             <button
               onClick={() => {
@@ -148,9 +173,13 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
                 }));
                 window.location.reload();
               }}
-              className="block w-full px-3 py-2 text-left bg-gray-100 rounded hover:bg-gray-200 transition-colors text-sm"
+              className={`block w-full px-3 py-2 text-left rounded transition-colors text-sm ${
+                currentUser?.id === 'user-senior-dev' 
+                  ? 'bg-green-100 text-green-700 border border-green-200' 
+                  : 'bg-gray-100 hover:bg-gray-200'
+              }`}
             >
-              💻 김시니어 (청사진 작성자)
+              💻 김시니어 (청사진 작성자) {currentUser?.id === 'user-senior-dev' && '✓'}
             </button>
             <button
               onClick={() => {
@@ -161,9 +190,13 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
                 }));
                 window.location.reload();
               }}
-              className="block w-full px-3 py-2 text-left bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+              className={`block w-full px-3 py-2 text-left rounded transition-colors text-sm ${
+                currentUser?.id === 'user-admin' 
+                  ? 'bg-blue-200 text-blue-800 border border-blue-300' 
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              }`}
             >
-              🛡️ 관리자
+              🛡️ 관리자 {currentUser?.id === 'user-admin' && '✓'}
             </button>
             <hr className="my-2" />
             <button
