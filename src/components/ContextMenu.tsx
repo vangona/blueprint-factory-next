@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Node } from 'reactflow';
 import { NodeType } from '@/types/blueprint';
+import { getCurrentUser, canEditBlueprint } from '@/utils/simpleAuth';
 
 export interface ContextMenuItem {
   id: string;
@@ -31,6 +32,7 @@ interface ContextMenuProps {
   onAddChild?: (parentNode: Node, childType: NodeType) => void;
   onToggleComplete?: (node: Node) => void;
   onSetPriority?: (node: Node) => void;
+  blueprintAuthorId?: string; // 청사진 작성자 ID 추가
 }
 
 export default function ContextMenu({
@@ -45,8 +47,13 @@ export default function ContextMenu({
   onAddChild,
   onToggleComplete,
   onSetPriority,
+  blueprintAuthorId,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // 현재 사용자 및 편집 권한 확인
+  const currentUser = getCurrentUser();
+  const hasEditAccess = blueprintAuthorId ? canEditBlueprint(blueprintAuthorId, currentUser) : false;
 
   // 외부 클릭 감지
   useEffect(() => {
@@ -232,8 +239,12 @@ export default function ContextMenu({
           onHighlightUpstream(node.id);
           onClose();
         }
-      },
-      {
+      }
+    ];
+
+    // 편집 권한이 있는 경우에만 편집 메뉴 추가
+    if (hasEditAccess) {
+      baseItems.push({
         id: 'edit-details',
         label: '상세 정보 편집',
         icon: '✏️',
@@ -242,40 +253,45 @@ export default function ContextMenu({
           onEditDetails(node);
           onClose();
         }
-      }
-    ];
+      });
+    }
 
-    // 노드 타입별 특화 기능
-    const typeSpecificItems = getTypeSpecificItems(node);
+    // 노드 타입별 특화 기능 (편집 권한이 있을 때만)
+    const typeSpecificItems = hasEditAccess ? getTypeSpecificItems(node) : [];
 
-    const actionItems: ContextMenuItem[] = [
-      { id: 'divider-1', label: '', icon: '', action: () => {}, divider: true },
-      {
-        id: 'duplicate',
-        label: '복제',
-        icon: '📋',
-        shortcut: 'Ctrl+D',
-        action: () => {
-          onDuplicate(node);
-          onClose();
-        }
-      },
-      {
-        id: 'delete',
-        label: '삭제',
-        icon: '🗑️',
-        shortcut: 'Del',
-        action: () => {
-          if (confirm(`"${node.data.originalLabel || node.data.label}"을(를) 삭제하시겠습니까?`)) {
-            onDelete(node.id);
+    const actionItems: ContextMenuItem[] = [];
+    
+    // 편집 권한이 있는 경우에만 편집 관련 액션 추가
+    if (hasEditAccess) {
+      actionItems.push(
+        { id: 'divider-1', label: '', icon: '', action: () => {}, divider: true },
+        {
+          id: 'duplicate',
+          label: '복제',
+          icon: '📋',
+          shortcut: 'Ctrl+D',
+          action: () => {
+            onDuplicate(node);
             onClose();
           }
+        },
+        {
+          id: 'delete',
+          label: '삭제',
+          icon: '🗑️',
+          shortcut: 'Del',
+          action: () => {
+            if (confirm(`"${node.data.originalLabel || node.data.label}"을(를) 삭제하시겠습니까?`)) {
+              onDelete(node.id);
+              onClose();
+            }
+          }
         }
-      }
-    ];
+      );
+    }
 
     return [...baseItems, ...typeSpecificItems, ...actionItems];
-  }, [node, onHighlightUpstream, onEditDetails, onDuplicate, onDelete, onClose, getTypeSpecificItems]);
+  }, [node, onHighlightUpstream, onEditDetails, onDuplicate, onDelete, onClose, getTypeSpecificItems, hasEditAccess]);
 
   const handleMenuItemClick = useCallback((item: ContextMenuItem) => {
     if (item.disabled) return;

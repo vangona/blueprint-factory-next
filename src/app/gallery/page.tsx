@@ -1,12 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FollowButton from '@/components/FollowButton';
+import { getCurrentUser, filterGalleryBlueprints } from '@/utils/simpleAuth';
+import { DevAuthPanel } from '@/components/SimpleAccessControl';
 
 export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [sortBy, setSortBy] = useState('latest');
+  const [showDevAuth, setShowDevAuth] = useState(false);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser());
+  }, []);
 
   const categories = ['전체', '창업', '학습', '건강', '창작', '자기계발', '커리어'];
   
@@ -109,7 +117,10 @@ export default function GalleryPage() {
     },
   ];
 
-  const filteredBlueprints = sampleBlueprints
+  // 갤러리에는 public 청사진만 표시
+  const publicBlueprints = filterGalleryBlueprints(sampleBlueprints, currentUser);
+  
+  const filteredBlueprints = publicBlueprints
     .filter(blueprint => selectedCategory === '전체' || blueprint.category === selectedCategory)
     .sort((a, b) => {
       switch (sortBy) {
@@ -127,6 +138,12 @@ export default function GalleryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* 개발용 인증 패널 */}
+      <DevAuthPanel 
+        isVisible={showDevAuth} 
+        onToggle={() => setShowDevAuth(!showDevAuth)} 
+      />
+      
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="flex items-center justify-between p-4">

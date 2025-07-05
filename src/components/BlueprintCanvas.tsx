@@ -60,6 +60,7 @@ interface BlueprintCanvasProps {
   initialEdges?: Edge[];
   editable?: boolean;
   blueprintId?: string;
+  blueprintAuthorId?: string; // 청사진 작성자 ID 추가
 }
 
 const getNodeColor = (nodeType: string) => {
@@ -163,7 +164,8 @@ function BlueprintCanvasInner({
   initialNodes, 
   initialEdges,
   editable = true,
-  blueprintId
+  blueprintId,
+  blueprintAuthorId
 }: BlueprintCanvasProps) {
   const blueprint = useBlueprint(blueprintId);
   const { fitView } = useReactFlow();
@@ -978,6 +980,7 @@ function BlueprintCanvasInner({
           onAddChild={editable ? handleAddChildNode : undefined}
           onToggleComplete={editable ? handleToggleComplete : undefined}
           onSetPriority={editable ? handleSetPriority : undefined}
+          blueprintAuthorId={blueprintAuthorId}
         />
       </div>
 

@@ -4,12 +4,22 @@ import Link from 'next/link';
 import BlueprintCanvas from '@/components/BlueprintCanvas';
 import { type Node, type Edge } from 'reactflow';
 import { NodeType } from '@/types/blueprint';
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
+import { getCurrentUser, canViewBlueprint, canEditBlueprint, canDeleteBlueprint } from '@/utils/simpleAuth';
+import { RestrictedContent, DevAuthPanel } from '@/components/SimpleAccessControl';
 
-// 샘플 청사진 데이터
-const sampleBlueprints: Record<string, { title: string; nodes: Node[]; edges: Edge[] }> = {
+// 샘플 청사진 데이터 (privacy 정보 포함)
+const sampleBlueprints: Record<string, { 
+  title: string; 
+  nodes: Node[]; 
+  edges: Edge[];
+  privacy: 'private' | 'unlisted' | 'public';
+  authorId: string;
+}> = {
   '1': {
     title: '주니어에서 시니어 개발자로 3년 성장기',
+    privacy: 'public',
+    authorId: 'user-senior-dev',
     nodes: [
       // 1단계: VALUE - 가치관
       {
@@ -814,6 +824,8 @@ const sampleBlueprints: Record<string, { title: string; nodes: Node[]; edges: Ed
   },
   '2': {
     title: '퇴사 없이 부업으로 월 500만원',
+    privacy: 'private',
+    authorId: 'user-side',
     nodes: [
       // 1단계: VALUE - 가치관
       {
@@ -1772,6 +1784,8 @@ const sampleBlueprints: Record<string, { title: string; nodes: Node[]; edges: Ed
   },
   '3': {
     title: '비전공자 개발자 취업 성공기',
+    privacy: 'unlisted',
+    authorId: 'user-career',
     nodes: [
       // 1단계: VALUE - 가치관
       {
@@ -2762,6 +2776,8 @@ const sampleBlueprints: Record<string, { title: string; nodes: Node[]; edges: Ed
   },
   '4': {
     title: '대학원 진학부터 논문 게재까지',
+    privacy: 'public',
+    authorId: 'user-research',
     nodes: [
       // 1단계: VALUE - 가치관
       {
@@ -3822,6 +3838,8 @@ const sampleBlueprints: Record<string, { title: string; nodes: Node[]; edges: Ed
   },
   '5': {
     title: '운동 초보자의 -20kg 다이어트',
+    privacy: 'public',
+    authorId: 'user-health',
     nodes: [
       // 1단계: VALUE - 가치관
       {
@@ -4872,6 +4890,8 @@ const sampleBlueprints: Record<string, { title: string; nodes: Node[]; edges: Ed
   },
   '6': {
     title: '인스타 1만 팔로워 쇼핑몰 창업',
+    privacy: 'public',
+    authorId: 'user-insta',
     nodes: [
       // 1단계: VALUE - 가치관
       {
@@ -5932,20 +5952,42 @@ interface PageProps {
 export default function BlueprintDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const blueprint = sampleBlueprints[id];
+  const [showDevAuth, setShowDevAuth] = useState(false);
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser());
+  }, []);
 
   if (!blueprint) {
+    return <RestrictedContent hasAccess={false} reason="not-found" />;
+  }
+
+  // 접근 권한 확인
+  const hasViewAccess = canViewBlueprint(blueprint.privacy, blueprint.authorId, currentUser);
+  
+  if (!hasViewAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">청사진을 찾을 수 없습니다</h1>
-          <p className="text-gray-600">요청하신 청사진이 존재하지 않습니다.</p>
-        </div>
-      </div>
+      <RestrictedContent 
+        hasAccess={false} 
+        reason="private" 
+        blueprintTitle={blueprint.title}
+      />
     );
   }
 
+  // 편집/삭제 권한 확인
+  const hasEditAccess = canEditBlueprint(blueprint.authorId, currentUser);
+  const hasDeleteAccess = canDeleteBlueprint(blueprint.authorId, currentUser);
+
   return (
     <div className="w-full h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* 개발용 인증 패널 */}
+      <DevAuthPanel 
+        isVisible={showDevAuth} 
+        onToggle={() => setShowDevAuth(!showDevAuth)} 
+      />
+      
       {/* Header */}
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200 shadow-sm">
         <div className="flex items-center justify-between p-4">
@@ -5963,6 +6005,31 @@ export default function BlueprintDetailPage({ params }: PageProps) {
           </div>
           
           <nav className="flex items-center gap-4">
+            {/* 편집/삭제 버튼 (소유자만 표시) */}
+            {hasEditAccess && (
+              <>
+                <button 
+                  onClick={() => alert('편집 기능은 추후 구현 예정입니다.')}
+                  className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                >
+                  ✏️ 편집
+                </button>
+                {hasDeleteAccess && (
+                  <button 
+                    onClick={() => {
+                      if (confirm('정말로 이 청사진을 삭제하시겠습니까?')) {
+                        alert('삭제 기능은 추후 구현 예정입니다.');
+                      }
+                    }}
+                    className="text-red-600 hover:text-red-700 transition-colors font-medium"
+                  >
+                    🗑️ 삭제
+                  </button>
+                )}
+                <div className="w-px h-4 bg-gray-300"></div>
+              </>
+            )}
+            
             <Link href="/my-blueprints" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               📋 내 청사진 목록
             </Link>
@@ -5985,6 +6052,7 @@ export default function BlueprintDetailPage({ params }: PageProps) {
           initialNodes={blueprint.nodes} 
           initialEdges={blueprint.edges}
           editable={false}
+          blueprintAuthorId={blueprint.authorId}
         />
       </div>
     </div>
