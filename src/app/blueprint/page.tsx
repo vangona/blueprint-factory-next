@@ -4,11 +4,13 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import BlueprintCanvas from '@/components/BlueprintCanvas';
+import { getCurrentUser } from '@/utils/simpleAuth';
 
 function BlueprintContent() {
   const searchParams = useSearchParams();
   const blueprintId = searchParams.get('id') || 'default';
   const isViewMode = searchParams.get('view') === 'true';
+  const currentUser = getCurrentUser();
     return (
       <div className="w-full h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Header */}
@@ -52,7 +54,11 @@ function BlueprintContent() {
 
         {/* Blueprint Canvas */}
         <div className="w-full h-[calc(100vh-80px)]">
-          <BlueprintCanvas blueprintId={blueprintId} editable={!isViewMode} />
+          <BlueprintCanvas 
+            blueprintId={blueprintId} 
+            editable={!isViewMode}
+            blueprintAuthorId={currentUser?.id || 'anonymous'}
+          />
         </div>
       </div>
     );

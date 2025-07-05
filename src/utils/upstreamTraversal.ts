@@ -20,6 +20,23 @@ export interface UpstreamResult {
   };
 }
 
+export interface DownstreamPath {
+  nodeId: string;
+  level: number; // 0: 선택된 노드, 1: 직접 하위, 2: 간접 하위...
+  distance: number; // 선택된 노드로부터의 거리
+}
+
+export interface DownstreamResult {
+  selectedNodeId: string;
+  downstreamNodes: DownstreamPath[];
+  downstreamEdges: string[]; // 하이라이트할 엣지 ID들
+  pathInfo: {
+    totalLevels: number;
+    maxDistance: number;
+    leafNodes: string[]; // 최하위 노드들 (자식이 없는 노드들)
+  };
+}
+
 /**
  * 선택된 노드의 모든 상위 노드들을 탐지합니다.
  * @param selectedNodeId 선택된 노드 ID
@@ -396,4 +413,144 @@ export function applyUpstreamHighlight(
   });
   
   return { nodes: highlightedNodes, edges: highlightedEdges };
+}
+
+/**
+ * 선택된 노드의 모든 하위 노드들을 탐지합니다.
+ * @param selectedNodeId 선택된 노드 ID
+ * @param nodes 전체 노드 배열
+ * @param edges 전체 엣지 배열
+ * @returns 하위 노드 탐지 결과
+ */
+export function findDownstreamNodes(
+  selectedNodeId: string,
+  nodes: Node[],
+  edges: Edge[]
+): DownstreamResult {
+  const downstreamNodes: DownstreamPath[] = [];
+  const downstreamEdges: string[] = [];
+  const visited = new Set<string>();
+  const leafNodes: string[] = [];
+
+  // 선택된 노드를 레벨 0으로 추가
+  downstreamNodes.push({
+    nodeId: selectedNodeId,
+    level: 0,
+    distance: 0
+  });
+  visited.add(selectedNodeId);
+
+  // BFS를 사용하여 하위 노드들을 탐지
+  const queue: Array<{ nodeId: string; level: number; distance: number }> = [
+    { nodeId: selectedNodeId, level: 0, distance: 0 }
+  ];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    
+    // 현재 노드에서 나가는 엣지들을 찾기 (하위 노드들)
+    const outgoingEdges = edges.filter(edge => edge.source === current.nodeId);
+    
+    if (outgoingEdges.length === 0 && current.level > 0) {
+      // 더 이상 하위 노드가 없는 경우 (리프 노드)
+      leafNodes.push(current.nodeId);
+    }
+    
+    for (const edge of outgoingEdges) {
+      const childNodeId = edge.target;
+      
+      if (!visited.has(childNodeId)) {
+        visited.add(childNodeId);
+        
+        const downstreamPath: DownstreamPath = {
+          nodeId: childNodeId,
+          level: current.level + 1,
+          distance: current.distance + 1
+        };
+        
+        downstreamNodes.push(downstreamPath);
+        downstreamEdges.push(edge.id);
+        
+        // 다음 레벨 탐색을 위해 큐에 추가
+        queue.push({
+          nodeId: childNodeId,
+          level: current.level + 1,
+          distance: current.distance + 1
+        });
+      } else {
+        // 이미 방문한 노드지만 엣지는 하이라이트에 포함
+        downstreamEdges.push(edge.id);
+      }
+    }
+  }
+
+  const maxDistance = Math.max(...downstreamNodes.map(node => node.distance));
+  const totalLevels = Math.max(...downstreamNodes.map(node => node.level));
+
+  return {
+    selectedNodeId,
+    downstreamNodes,
+    downstreamEdges,
+    pathInfo: {
+      totalLevels,
+      maxDistance,
+      leafNodes
+    }
+  };
+}
+
+/**
+ * 연결된 노드들의 정보를 구조화된 형태로 반환합니다.
+ * @param selectedNodeId 선택된 노드 ID
+ * @param nodes 전체 노드 배열
+ * @param edges 전체 엣지 배열
+ * @returns 상위/하위 노드 관계 정보
+ */
+export function getNodeRelationships(
+  selectedNodeId: string,
+  nodes: Node[],
+  edges: Edge[]
+) {
+  const upstreamResult = findUpstreamNodes(selectedNodeId, nodes, edges);
+  const downstreamResult = findDownstreamNodes(selectedNodeId, nodes, edges);
+  const nodeMap = new Map(nodes.map(node => [node.id, node]));
+  
+  // 상위 노드들 (선택된 노드 제외)
+  const upstreamNodes = upstreamResult.upstreamNodes
+    .filter(path => path.nodeId !== selectedNodeId)
+    .map(path => {
+      const node = nodeMap.get(path.nodeId);
+      return {
+        id: path.nodeId,
+        label: node?.data.originalLabel || node?.data.label || '',
+        nodeType: node?.data.nodeType || 'unknown',
+        level: path.level,
+        distance: path.distance
+      };
+    })
+    .filter(node => node.label)
+    .sort((a, b) => b.level - a.level); // 최상위부터 정렬
+  
+  // 하위 노드들 (선택된 노드 제외)
+  const downstreamNodes = downstreamResult.downstreamNodes
+    .filter(path => path.nodeId !== selectedNodeId)
+    .map(path => {
+      const node = nodeMap.get(path.nodeId);
+      return {
+        id: path.nodeId,
+        label: node?.data.originalLabel || node?.data.label || '',
+        nodeType: node?.data.nodeType || 'unknown',
+        level: path.level,
+        distance: path.distance
+      };
+    })
+    .filter(node => node.label)
+    .sort((a, b) => a.level - b.level); // 가까운 하위부터 정렬
+  
+  return {
+    upstreamNodes,
+    downstreamNodes,
+    hasUpstream: upstreamNodes.length > 0,
+    hasDownstream: downstreamNodes.length > 0
+  };
 }

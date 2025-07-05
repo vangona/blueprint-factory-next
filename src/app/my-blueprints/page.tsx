@@ -18,6 +18,7 @@ export default function MyBlueprintsPage() {
   const { getSavedBlueprints } = useBlueprint();
   const [blueprints, setBlueprints] = useState<SavedBlueprintWithId[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingPrivacy, setEditingPrivacy] = useState<string | null>(null);
 
   useEffect(() => {
     const loadBlueprints = () => {
@@ -67,6 +68,28 @@ export default function MyBlueprintsPage() {
     if (confirm('이 청사진을 삭제하시겠습니까?')) {
       localStorage.removeItem(`blueprint-${id}`);
       setBlueprints(blueprints.filter(bp => bp.id !== id));
+    }
+  };
+
+  const updatePrivacy = (id: string, newPrivacy: 'private' | 'unlisted' | 'followers' | 'public') => {
+    try {
+      const storageKey = `blueprint-${id.replace('blueprint-', '')}`;
+      const existingData = localStorage.getItem(storageKey);
+      if (existingData) {
+        const blueprint = JSON.parse(existingData);
+        blueprint.privacy = newPrivacy;
+        blueprint.lastModified = new Date().toISOString();
+        localStorage.setItem(storageKey, JSON.stringify(blueprint));
+        
+        // 상태 업데이트
+        setBlueprints(prev => prev.map(bp => 
+          bp.id === id ? { ...bp, privacy: newPrivacy } : bp
+        ));
+        setEditingPrivacy(null);
+      }
+    } catch (error) {
+      console.error('프라이버시 설정 업데이트 중 오류:', error);
+      alert('프라이버시 설정 업데이트에 실패했습니다.');
     }
   };
 
@@ -175,6 +198,13 @@ export default function MyBlueprintsPage() {
                   
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => setEditingPrivacy(editingPrivacy === blueprint.id ? null : blueprint.id)}
+                      className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="공개 설정"
+                    >
+                      ⚙️
+                    </button>
+                    <button
                       onClick={() => deleteBlueprint(blueprint.id)}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       title="삭제"
@@ -183,6 +213,47 @@ export default function MyBlueprintsPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* 프라이버시 설정 편집 */}
+                {editingPrivacy === blueprint.id && (
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="text-sm font-semibold text-blue-800 mb-3">공개 설정 변경</h4>
+                    <div className="space-y-2">
+                      {[
+                        { value: 'private', label: '🔒 비공개', desc: '본인만 볼 수 있습니다' },
+                        { value: 'unlisted', label: '🔗 링크 공유', desc: '링크를 아는 사람만 접근할 수 있습니다' },
+                        { value: 'followers', label: '👥 팔로워 공개', desc: '팔로워들만 볼 수 있습니다' },
+                        { value: 'public', label: '🌐 전체 공개', desc: '누구나 볼 수 있고 갤러리에 노출됩니다' }
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => updatePrivacy(blueprint.id, option.value as any)}
+                          className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
+                            blueprint.privacy === option.value
+                              ? 'border-blue-500 bg-blue-100'
+                              : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium text-gray-900">{option.label}</div>
+                            <div className="text-xs text-gray-600">{option.desc}</div>
+                          </div>
+                          {blueprint.privacy === option.value && (
+                            <div className="text-blue-600">✓</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => setEditingPrivacy(null)}
+                        className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {blueprint.description && (
                   <p className="text-gray-700 text-sm mb-4 line-clamp-2">

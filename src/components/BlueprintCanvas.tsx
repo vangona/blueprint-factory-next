@@ -991,6 +991,41 @@ function BlueprintCanvasInner({
         onClose={() => setIsDetailPanelOpen(false)}
         onUpdate={handleNodeUpdate}
         editable={editable}
+        blueprintAuthorId={blueprintAuthorId}
+        nodes={nodes}
+        edges={edges}
+        onNavigateToNode={(nodeId) => {
+          // 노드로 이동 시 해당 노드를 선택하고 중앙으로 이동
+          const targetNode = nodes.find(n => n.id === nodeId);
+          if (targetNode) {
+            setSelectedNode(targetNode);
+            // React Flow의 fitView를 사용하여 해당 노드로 이동
+            setTimeout(() => {
+              fitView({ 
+                nodes: [{ id: nodeId }], 
+                duration: 800,
+                padding: 0.3
+              });
+            }, 100);
+          }
+        }}
+        upstreamNodes={selectedNode ? (() => {
+          // 선택된 노드의 상위 목표 경로 계산
+          const upstreamResult = findUpstreamNodes(selectedNode.id, nodes, edges);
+          // 선택된 노드를 제외한 상위 노드들만 추출하고, 최상위부터 현재까지 순서로 정렬
+          const upstreamPaths = upstreamResult.upstreamNodes
+            .filter(path => path.nodeId !== selectedNode.id && path.level > 0)
+            .sort((a, b) => b.level - a.level); // 레벨 역순 정렬 (최상위부터)
+          
+          return upstreamPaths.map(path => {
+            const node = nodes.find(n => n.id === path.nodeId);
+            return {
+              id: path.nodeId,
+              label: node?.data.originalLabel || node?.data.label || '',
+              nodeType: node?.data.nodeType || NodeType.TASK
+            };
+          }).filter(node => node.label); // 유효한 노드만 반환
+        })() : []}
       />
 
       {/* 저장 모달 */}
