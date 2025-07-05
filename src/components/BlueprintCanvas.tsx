@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useMemo } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -22,8 +22,16 @@ import NodeDetailPanel from './NodeDetailPanel';
 import { stratify, tree, HierarchyNode } from 'd3-hierarchy';
 
 import 'reactflow/dist/style.css';
+import '../styles/upstream-highlight.css';
 import { toast } from "sonner";
 import AIBlueprintWizard from './AIBlueprintWizard';
+import { 
+  findUpstreamNodes, 
+  clearHighlight, 
+  applyUpstreamHighlight, 
+  formatUpstreamInfo,
+  type UpstreamResult 
+} from '@/utils/upstreamTraversal';
 
 // d3-hierarchy를 위한 타입 정의
 interface TreeNode {
@@ -163,13 +171,26 @@ function BlueprintCanvasInner({
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [showAIWizard, setShowAIWizard] = useState(false);
   
+  // 상위 노드 하이라이트 상태
+  const [upstreamResult, setUpstreamResult] = useState<UpstreamResult | null>(null);
+  const [isUpstreamHighlighted, setIsUpstreamHighlighted] = useState(false);
+  
   // useBlueprint 훅의 상태를 직접 사용
   const [localNodes, setLocalNodes, onNodesChange] = useNodesState(blueprint.nodes.length > 0 ? blueprint.nodes : (initialNodes || defaultNodes));
   const [localEdges, setLocalEdges, onEdgesChange] = useEdgesState(blueprint.edges.length > 0 ? blueprint.edges : (initialEdges || defaultEdges));
   
   // 실제 사용할 nodes와 edges는 blueprint 상태 우선
-  const nodes = blueprint.nodes.length > 0 ? blueprint.nodes : localNodes;
-  const edges = blueprint.edges.length > 0 ? blueprint.edges : localEdges;
+  const baseNodes = blueprint.nodes.length > 0 ? blueprint.nodes : localNodes;
+  const baseEdges = blueprint.edges.length > 0 ? blueprint.edges : localEdges;
+  
+  // 상위 노드 하이라이트 적용
+  const { nodes, edges } = useMemo(() => {
+    if (isUpstreamHighlighted && upstreamResult) {
+      return applyUpstreamHighlight(upstreamResult, baseNodes, baseEdges);
+    } else {
+      return clearHighlight(baseNodes, baseEdges);
+    }
+  }, [isUpstreamHighlighted, upstreamResult, baseNodes, baseEdges]);
 
   // 로컬 상태 변경시 useBlueprint 훅으로 전달
   useEffect(() => {
@@ -197,6 +218,19 @@ function BlueprintCanvasInner({
     }
   }, [blueprint.edges, setLocalEdges]);
 
+  // 키보드 단축키 (Escape로 하이라이트 해제)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isUpstreamHighlighted) {
+        setUpstreamResult(null);
+        setIsUpstreamHighlighted(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isUpstreamHighlighted]);
+
   const onConnect: OnConnect = useCallback(
     (params) => setLocalEdges((eds) => addEdge(params, eds)),
     [setLocalEdges],
@@ -218,9 +252,22 @@ function BlueprintCanvasInner({
   }, [selectedNodeType, setLocalNodes]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    // 상위 노드 하이라이트 처리
+    if (isUpstreamHighlighted && upstreamResult?.selectedNodeId === node.id) {
+      // 같은 노드를 다시 클릭하면 하이라이트 해제
+      setUpstreamResult(null);
+      setIsUpstreamHighlighted(false);
+    } else {
+      // 새로운 노드 클릭 시 상위 노드 하이라이트
+      const result = findUpstreamNodes(node.id, nodes, edges);
+      setUpstreamResult(result);
+      setIsUpstreamHighlighted(true);
+    }
+    
+    // 기존 노드 상세 패널 처리
     setSelectedNode(node);
     setIsDetailPanelOpen(true);
-  }, []);
+  }, [isUpstreamHighlighted, upstreamResult, nodes, edges]);
 
   const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
     if (!editable) return;
@@ -619,8 +666,14 @@ function BlueprintCanvasInner({
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span>💡</span>
-              <span>노드 클릭: 상세 정보{editable ? ' | 더블클릭: 빠른 편집' : ''}</span>
+              <span>노드 클릭: 상위 목표 하이라이트 + 상세 정보{editable ? ' | 더블클릭: 빠른 편집' : ''}</span>
             </div>
+            {isUpstreamHighlighted && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg">
+                <span>🎯</span>
+                <span>상위 경로 표시 중 (ESC로 해제)</span>
+              </div>
+            )}
             {blueprint.lastSaved && editable && (
               <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg">
                 <span>✓</span>
@@ -632,7 +685,7 @@ function BlueprintCanvasInner({
       </div>
 
       {/* React Flow 캔버스 */}
-      <div className="flex-1">
+      <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -648,6 +701,29 @@ function BlueprintCanvasInner({
           <MiniMap />
           <Background variant={BackgroundVariant.Dots} gap={12} size={1} />
         </ReactFlow>
+        
+        {/* 상위 노드 경로 정보 패널 */}
+        {isUpstreamHighlighted && upstreamResult && (
+          <div className="upstream-info-panel">
+            <button
+              className="close-btn"
+              onClick={() => {
+                setUpstreamResult(null);
+                setIsUpstreamHighlighted(false);
+              }}
+              title="하이라이트 해제"
+            >
+              ×
+            </button>
+            <h3>📍 목표 경로</h3>
+            <div className="path-info">
+              {formatUpstreamInfo(upstreamResult, baseNodes)}
+            </div>
+            <div className="text-xs text-gray-500 mt-3">
+              총 {upstreamResult.pathInfo.totalLevels}단계 | 최대 거리 {upstreamResult.pathInfo.maxDistance}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 노드 세부 정보 패널 */}

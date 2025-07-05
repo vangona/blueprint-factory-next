@@ -1,0 +1,214 @@
+/* 상위 노드 하이라이트 스타일 */
+
+/* 선택된 노드 */
+.react-flow__node.node-selected {
+  border: 3px solid #3B82F6 !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important;
+  transform: scale(1.05);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+/* 1단계 상위 노드 (직접 부모) */
+.react-flow__node.node-upstream-level-1 {
+  border: 3px solid #10B981 !important;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.2)) !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4) !important;
+  transform: scale(1.03);
+  transition: all 0.3s ease;
+  z-index: 999;
+}
+
+/* 2단계 상위 노드 */
+.react-flow__node.node-upstream-level-2 {
+  border: 2px solid #34D399 !important;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(52, 211, 153, 0.15)) !important;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.3) !important;
+  transition: all 0.3s ease;
+  z-index: 998;
+}
+
+/* 3단계 이상 상위 노드 */
+.react-flow__node.node-upstream-level-3-plus {
+  border: 1px solid #6EE7B7 !important;
+  background: linear-gradient(135deg, rgba(110, 231, 183, 0.05), rgba(110, 231, 183, 0.1)) !important;
+  box-shadow: 0 0 8px rgba(110, 231, 183, 0.2) !important;
+  transition: all 0.3s ease;
+  z-index: 997;
+}
+
+/* 하이라이트된 엣지 */
+.react-flow__edge.edge-highlighted {
+  stroke: #3B82F6 !important;
+  stroke-width: 3px !important;
+  z-index: 1001;
+}
+
+.react-flow__edge.edge-highlighted .react-flow__edge-path {
+  stroke: #3B82F6 !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 8, 4;
+  animation: dash-flow 2s linear infinite;
+}
+
+/* 엣지 애니메이션 */
+@keyframes dash-flow {
+  0% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 24;
+  }
+}
+
+/* 비활성 노드 */
+.react-flow__node.node-dimmed {
+  opacity: 0.3 !important;
+  transition: opacity 0.3s ease;
+  filter: grayscale(0.5);
+}
+
+/* 비활성 엣지 */
+.react-flow__edge.edge-dimmed {
+  opacity: 0.2 !important;
+  transition: opacity 0.3s ease;
+}
+
+.react-flow__edge.edge-dimmed .react-flow__edge-path {
+  opacity: 0.2 !important;
+}
+
+/* 호버 효과 (미리보기) */
+.react-flow__node:hover.node-preview {
+  border: 2px dashed #8B5CF6 !important;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
+  transition: all 0.2s ease;
+}
+
+/* 경로 정보 툴팁 */
+.upstream-tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  max-width: 300px;
+  z-index: 2000;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.upstream-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.9);
+}
+
+/* 경로 정보 패널 */
+.upstream-info-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  max-width: 300px;
+  z-index: 1500;
+  border: 1px solid #E5E7EB;
+}
+
+.upstream-info-panel h3 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.upstream-info-panel .path-info {
+  font-size: 12px;
+  color: #6B7280;
+  line-height: 1.4;
+}
+
+.upstream-info-panel .close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  color: #9CA3AF;
+  padding: 4px;
+}
+
+.upstream-info-panel .close-btn:hover {
+  color: #374151;
+}
+
+/* 레벨별 색상 인디케이터 */
+.level-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.level-indicator.level-0 {
+  background: #3B82F6;
+}
+
+.level-indicator.level-1 {
+  background: #10B981;
+}
+
+.level-indicator.level-2 {
+  background: #34D399;
+}
+
+.level-indicator.level-3-plus {
+  background: #6EE7B7;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+  .upstream-info-panel {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .react-flow__node.node-selected {
+    transform: scale(1.02);
+  }
+  
+  .react-flow__node.node-upstream-level-1 {
+    transform: scale(1.01);
+  }
+}
+
+/* 다크 모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .upstream-info-panel {
+    background: #1F2937;
+    border-color: #374151;
+    color: #F3F4F6;
+  }
+  
+  .upstream-info-panel h3 {
+    color: #F3F4F6;
+  }
+  
+  .upstream-info-panel .path-info {
+    color: #D1D5DB;
+  }
+}
