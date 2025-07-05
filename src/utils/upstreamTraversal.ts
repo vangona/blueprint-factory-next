@@ -1,6 +1,7 @@
 // 상위 노드 탐지 및 경로 추적 유틸리티
 
 import { Node, Edge } from 'reactflow';
+import { NodeType } from '@/types/blueprint';
 
 export interface UpstreamPath {
   nodeId: string;
@@ -120,6 +121,72 @@ export function getHighlightStyle(level: number): string {
   }
 }
 
+export interface FormattedUpstreamInfo {
+  hasUpstream: boolean;
+  selectedNode: {
+    id: string;
+    label: string;
+  } | null;
+  levels: Array<{
+    level: number;
+    description: string;
+    nodes: Array<{
+      id: string;
+      label: string;
+      originalLabel: string;
+      nodeType: string;
+    }>;
+  }>;
+  summary: string;
+}
+
+/**
+ * 노드 타입에 따른 직관적인 설명을 생성합니다.
+ */
+function getNodeTypeDescription(nodeType: string): string {
+  switch (nodeType) {
+    case NodeType.VALUE:
+      return '나의 가치관';
+    case NodeType.LONG_GOAL:
+      return '장기목표';
+    case NodeType.SHORT_GOAL:
+      return '단기목표';
+    case NodeType.PLAN:
+      return '실행계획';
+    case NodeType.TASK:
+      return '세부할일';
+    default:
+      return '목표';
+  }
+}
+
+/**
+ * 레벨별 노드들의 타입을 분석해서 가장 적절한 레벨 설명을 생성합니다.
+ */
+function getLevelDescription(nodes: Array<{nodeType: string}>, level: number): string {
+  // 해당 레벨의 모든 노드 타입을 수집
+  const nodeTypes = nodes.map(node => node.nodeType);
+  const uniqueTypes = [...new Set(nodeTypes)];
+  
+  // 단일 타입인 경우
+  if (uniqueTypes.length === 1) {
+    const typeDesc = getNodeTypeDescription(uniqueTypes[0]);
+    return nodeTypes.length === 1 ? typeDesc : `${typeDesc}들`;
+  }
+  
+  // 혼합 타입인 경우 - 가장 상위 타입을 우선으로 표시
+  const typeOrder = [NodeType.VALUE, NodeType.LONG_GOAL, NodeType.SHORT_GOAL, NodeType.PLAN, NodeType.TASK];
+  const highestType = typeOrder.find(type => uniqueTypes.includes(type));
+  
+  if (highestType) {
+    const typeDesc = getNodeTypeDescription(highestType);
+    return uniqueTypes.length === 2 ? `${typeDesc} 등` : `${typeDesc} 외 ${uniqueTypes.length - 1}개`;
+  }
+  
+  // 기본값
+  return level === 1 ? '직접 상위 목표' : `${level}단계 상위 목표`;
+}
+
 /**
  * 상위 노드들의 정보를 사용자 친화적인 형태로 포맷합니다.
  * @param result 상위 노드 탐지 결과
@@ -150,7 +217,7 @@ export function formatUpstreamInfo(result: UpstreamResult, nodes: Node[]): strin
     const nodesAtLevel = levelGroups.get(level)!;
     const nodeLabels = nodesAtLevel.map(node => {
       const nodeData = nodeMap.get(node.nodeId);
-      return nodeData?.data?.label || node.nodeId;
+      return nodeData?.data?.originalLabel || nodeData?.data?.label || node.nodeId;
     });
     
     const levelDescription = level === 1 ? '직접 목표' : 
@@ -161,6 +228,77 @@ export function formatUpstreamInfo(result: UpstreamResult, nodes: Node[]): strin
   });
   
   return pathDescriptions.join(' → ');
+}
+
+/**
+ * 상위 노드들의 정보를 구조화된 형태로 포맷합니다.
+ * @param result 상위 노드 탐지 결과
+ * @param nodes 전체 노드 배열 (라벨 정보 획득용)
+ * @returns 구조화된 경로 정보
+ */
+export function formatUpstreamInfoStructured(result: UpstreamResult, nodes: Node[]): FormattedUpstreamInfo {
+  const nodeMap = new Map(nodes.map(node => [node.id, node]));
+  
+  // 선택된 노드 정보
+  const selectedNodeData = nodeMap.get(result.selectedNodeId);
+  const selectedNode = selectedNodeData ? {
+    id: result.selectedNodeId,
+    label: selectedNodeData.data?.originalLabel || selectedNodeData.data?.label || result.selectedNodeId
+  } : null;
+  
+  if (result.upstreamNodes.length <= 1) {
+    return {
+      hasUpstream: false,
+      selectedNode,
+      levels: [],
+      summary: '최상위 목표입니다.'
+    };
+  }
+  
+  // 레벨별로 그룹화
+  const levelGroups = new Map<number, UpstreamPath[]>();
+  result.upstreamNodes.forEach(node => {
+    if (node.level > 0) { // 선택된 노드(레벨 0) 제외
+      const group = levelGroups.get(node.level) || [];
+      group.push(node);
+      levelGroups.set(node.level, group);
+    }
+  });
+  
+  // 레벨별 정보 구조화
+  const levels = Array.from(levelGroups.keys()).sort().map(level => {
+    const nodesAtLevel = levelGroups.get(level)!;
+    const levelNodes = nodesAtLevel.map(node => {
+      const nodeData = nodeMap.get(node.nodeId);
+      return {
+        id: node.nodeId,
+        label: nodeData?.data?.label || node.nodeId,
+        originalLabel: nodeData?.data?.originalLabel || nodeData?.data?.label || node.nodeId,
+        nodeType: nodeData?.data?.nodeType || 'unknown'
+      };
+    });
+    
+    // 노드 타입 기반으로 레벨 설명 생성
+    const levelDescription = getLevelDescription(levelNodes, level);
+    
+    return {
+      level,
+      description: levelDescription,
+      nodes: levelNodes
+    };
+  });
+  
+  // 요약 생성
+  const totalUpstreamNodes = result.upstreamNodes.length - 1; // 선택된 노드 제외
+  const maxLevel = Math.max(...levels.map(l => l.level));
+  const summary = `${totalUpstreamNodes}개의 상위 목표가 ${maxLevel}단계에 걸쳐 연결되어 있습니다.`;
+  
+  return {
+    hasUpstream: true,
+    selectedNode,
+    levels,
+    summary
+  };
 }
 
 /**

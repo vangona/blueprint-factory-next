@@ -30,7 +30,7 @@ import {
   findUpstreamNodes, 
   clearHighlight, 
   applyUpstreamHighlight, 
-  formatUpstreamInfo,
+  formatUpstreamInfoStructured,
   type UpstreamResult 
 } from '@/utils/upstreamTraversal';
 
@@ -813,27 +813,157 @@ function BlueprintCanvasInner({
         </ReactFlow>
         
         {/* 상위 노드 경로 정보 패널 */}
-        {isUpstreamHighlighted && upstreamResult && (
-          <div className="upstream-info-panel">
-            <button
-              className="close-btn"
-              onClick={() => {
-                setUpstreamResult(null);
-                setIsUpstreamHighlighted(false);
-              }}
-              title="하이라이트 해제"
-            >
-              ×
-            </button>
-            <h3>📍 목표 경로</h3>
-            <div className="path-info">
-              {formatUpstreamInfo(upstreamResult, baseNodes)}
+        {isUpstreamHighlighted && upstreamResult && (() => {
+          const structuredInfo = formatUpstreamInfoStructured(upstreamResult, baseNodes);
+          
+          return (
+            <div className="upstream-info-panel">
+              <button
+                className="close-btn"
+                onClick={() => {
+                  setUpstreamResult(null);
+                  setIsUpstreamHighlighted(false);
+                }}
+                title="하이라이트 해제"
+              >
+                ×
+              </button>
+              
+              <h3 className="flex items-center gap-2 text-gray-800 font-semibold mb-3">
+                <span>📍</span>
+                <span>목표 경로</span>
+              </h3>
+              
+              {/* 선택된 노드 정보 */}
+              {structuredInfo.selectedNode && (
+                <div className="mb-3 p-2 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                  <div className="text-xs text-blue-700 font-medium mb-1">현재 선택</div>
+                  <div className="text-sm text-blue-900 font-medium">
+                    {structuredInfo.selectedNode.label}
+                  </div>
+                </div>
+              )}
+              
+              {/* 상위 목표들 */}
+              {structuredInfo.hasUpstream ? (
+                <div className="space-y-2">
+                  {structuredInfo.levels.map((level, index) => (
+                    <div key={level.level} className="relative">
+                      {/* 연결선 */}
+                      {index > 0 && (
+                        <div className="absolute -top-2 left-3 w-px h-2 bg-gray-300"></div>
+                      )}
+                      
+                      <div className="flex items-start gap-2">
+                        {/* 레벨 인디케이터 */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 mt-0.5 ${
+                          level.level === 1 ? 'bg-green-500' :
+                          level.level === 2 ? 'bg-green-400' :
+                          'bg-green-300'
+                        }`}>
+                          {level.level}
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs text-gray-600 font-medium mb-1">
+                            {level.description}
+                          </div>
+                          <div className="space-y-1">
+                            {level.nodes.map((node) => {
+                              // 노드 타입에 따른 색상 및 아이콘
+                              const getNodeTypeStyle = (nodeType: string) => {
+                                switch (nodeType) {
+                                  case 'VALUE':
+                                    return { 
+                                      borderColor: 'border-purple-300', 
+                                      bgColor: 'bg-purple-50', 
+                                      icon: '🌟',
+                                      textColor: 'text-purple-800'
+                                    };
+                                  case 'LONG_GOAL':
+                                    return { 
+                                      borderColor: 'border-pink-300', 
+                                      bgColor: 'bg-pink-50', 
+                                      icon: '🎯',
+                                      textColor: 'text-pink-800'
+                                    };
+                                  case 'SHORT_GOAL':
+                                    return { 
+                                      borderColor: 'border-blue-300', 
+                                      bgColor: 'bg-blue-50', 
+                                      icon: '📅',
+                                      textColor: 'text-blue-800'
+                                    };
+                                  case 'PLAN':
+                                    return { 
+                                      borderColor: 'border-green-300', 
+                                      bgColor: 'bg-green-50', 
+                                      icon: '📋',
+                                      textColor: 'text-green-800'
+                                    };
+                                  case 'TASK':
+                                    return { 
+                                      borderColor: 'border-yellow-300', 
+                                      bgColor: 'bg-yellow-50', 
+                                      icon: '✅',
+                                      textColor: 'text-yellow-800'
+                                    };
+                                  default:
+                                    return { 
+                                      borderColor: 'border-gray-300', 
+                                      bgColor: 'bg-gray-50', 
+                                      icon: '📌',
+                                      textColor: 'text-gray-800'
+                                    };
+                                }
+                              };
+                              
+                              const style = getNodeTypeStyle(node.nodeType);
+                              
+                              return (
+                                <div 
+                                  key={node.id}
+                                  className={`text-sm p-2 rounded border-l-2 ${style.borderColor} ${style.bgColor}`}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-base">{style.icon}</span>
+                                    <span className={`font-medium ${style.textColor}`}>
+                                      {node.originalLabel}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* 요약 정보 */}
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <div className="text-xs text-gray-600 font-medium mb-1">
+                      📊 경로 요약
+                    </div>
+                    <div className="text-xs text-gray-700">
+                      {structuredInfo.summary}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <div className="text-2xl mb-2">🏆</div>
+                  <div className="text-sm text-gray-600 font-medium">
+                    {structuredInfo.summary}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    이는 가장 상위의 목표입니다
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="text-xs text-gray-500 mt-3">
-              총 {upstreamResult.pathInfo.totalLevels}단계 | 최대 거리 {upstreamResult.pathInfo.maxDistance}
-            </div>
-          </div>
-        )}
+          );
+        })()}
         
         {/* 컨텍스트 메뉴 */}
         <ContextMenu
