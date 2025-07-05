@@ -109,7 +109,7 @@ export default function MyBlueprintsPage() {
             <Link href="/gallery" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
               🎨 갤러리
             </Link>
-            <Link href="/personal-branding" className="text-gray-600 hover:text-purple-600 transition-colors font-medium">
+            <Link href="/branding" className="text-gray-600 hover:text-purple-600 transition-colors font-medium">
               ✨ 브랜딩
             </Link>
             <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors font-medium">
@@ -231,12 +231,24 @@ export default function MyBlueprintsPage() {
               
               {(() => {
                 const totalNodes = blueprints.reduce((sum, bp) => sum + bp.nodeCount, 0);
-                return totalNodes >= 10 && (
+                console.log('Total nodes:', totalNodes); // 디버깅용
+                
+                return (
                   <Link
-                    href="/personal-branding"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg hover:from-purple-600 hover:to-indigo-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    href="/branding"
+                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl text-sm font-medium ${
+                      totalNodes >= 10 
+                        ? 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600' 
+                        : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                    }`}
+                    onClick={(e) => {
+                      if (totalNodes < 10) {
+                        e.preventDefault();
+                        alert(`브랜딩 문장 생성을 위해서는 총 10개 이상의 노드가 필요합니다. (현재: ${totalNodes}개)`);
+                      }
+                    }}
                   >
-                    ✨ 브랜딩 문장 생성하기
+                    ✨ 브랜딩 문장 생성하기 ({totalNodes}/10)
                   </Link>
                 );
               })()}

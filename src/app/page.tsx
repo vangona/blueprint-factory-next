@@ -23,7 +23,7 @@ export default function Home() {
             <Link href="/gallery" className="text-gray-600 hover:text-blue-600 transition-colors">
               갤러리
             </Link>
-            <Link href="/personal-branding" className="text-gray-600 hover:text-purple-600 transition-colors">
+            <Link href="/branding" className="text-gray-600 hover:text-purple-600 transition-colors">
               🎯 브랜딩
             </Link>
             <Link href="/profile" className="text-gray-600 hover:text-blue-600 transition-colors">
@@ -61,8 +61,9 @@ export default function Home() {
             </button>
             
             <Link
-              href="/personal-branding"
+              href="/branding"
               className="group border-2 border-purple-300 text-purple-700 px-8 py-4 rounded-xl font-semibold text-lg transition-all duration-300 hover:border-purple-500 hover:text-purple-800 hover:shadow-lg hover:bg-purple-50 min-w-48"
+              onClick={() => console.log('브랜딩 버튼 클릭됨')}
             >
               <span className="flex items-center gap-2">
                 ✨ 브랜딩 문장 생성
