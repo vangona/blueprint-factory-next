@@ -25,6 +25,7 @@ import 'reactflow/dist/style.css';
 import '../styles/upstream-highlight.css';
 import { toast } from "sonner";
 import AIBlueprintWizard from './AIBlueprintWizard';
+import ContextMenu from './ContextMenu';
 import { 
   findUpstreamNodes, 
   clearHighlight, 
@@ -175,6 +176,17 @@ function BlueprintCanvasInner({
   const [upstreamResult, setUpstreamResult] = useState<UpstreamResult | null>(null);
   const [isUpstreamHighlighted, setIsUpstreamHighlighted] = useState(false);
   
+  // 컨텍스트 메뉴 상태
+  const [contextMenu, setContextMenu] = useState<{
+    node: Node | null;
+    position: { x: number; y: number };
+    visible: boolean;
+  }>({
+    node: null,
+    position: { x: 0, y: 0 },
+    visible: false
+  });
+  
   // useBlueprint 훅의 상태를 직접 사용
   const [localNodes, setLocalNodes, onNodesChange] = useNodesState(blueprint.nodes.length > 0 ? blueprint.nodes : (initialNodes || defaultNodes));
   const [localEdges, setLocalEdges, onEdgesChange] = useEdgesState(blueprint.edges.length > 0 ? blueprint.edges : (initialEdges || defaultEdges));
@@ -218,18 +230,22 @@ function BlueprintCanvasInner({
     }
   }, [blueprint.edges, setLocalEdges]);
 
-  // 키보드 단축키 (Escape로 하이라이트 해제)
+  // 키보드 단축키 (Escape로 하이라이트 해제 및 컨텍스트 메뉴 닫기)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && isUpstreamHighlighted) {
-        setUpstreamResult(null);
-        setIsUpstreamHighlighted(false);
+      if (event.key === 'Escape') {
+        if (contextMenu.visible) {
+          setContextMenu({ node: null, position: { x: 0, y: 0 }, visible: false });
+        } else if (isUpstreamHighlighted) {
+          setUpstreamResult(null);
+          setIsUpstreamHighlighted(false);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isUpstreamHighlighted]);
+  }, [isUpstreamHighlighted, contextMenu.visible]);
 
   const onConnect: OnConnect = useCallback(
     (params) => setLocalEdges((eds) => addEdge(params, eds)),
@@ -252,22 +268,24 @@ function BlueprintCanvasInner({
   }, [selectedNodeType, setLocalNodes]);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
-    // 상위 노드 하이라이트 처리
-    if (isUpstreamHighlighted && upstreamResult?.selectedNodeId === node.id) {
-      // 같은 노드를 다시 클릭하면 하이라이트 해제
-      setUpstreamResult(null);
-      setIsUpstreamHighlighted(false);
-    } else {
-      // 새로운 노드 클릭 시 상위 노드 하이라이트
-      const result = findUpstreamNodes(node.id, nodes, edges);
-      setUpstreamResult(result);
-      setIsUpstreamHighlighted(true);
+    // 컨텍스트 메뉴가 열려있으면 닫기
+    if (contextMenu.visible) {
+      setContextMenu({ node: null, position: { x: 0, y: 0 }, visible: false });
     }
     
-    // 기존 노드 상세 패널 처리
+    // 기본 클릭: 노드 선택 및 상세 패널 열기
     setSelectedNode(node);
     setIsDetailPanelOpen(true);
-  }, [isUpstreamHighlighted, upstreamResult, nodes, edges]);
+  }, [contextMenu.visible]);
+
+  const onNodeContextMenu = useCallback((event: React.MouseEvent, node: Node) => {
+    event.preventDefault();
+    setContextMenu({
+      node,
+      position: { x: event.clientX, y: event.clientY },
+      visible: true
+    });
+  }, []);
 
   const onNodeDoubleClick = useCallback((_event: React.MouseEvent, node: Node) => {
     if (!editable) return;
@@ -589,6 +607,97 @@ function BlueprintCanvasInner({
     setLocalEdges(convertedEdges);
   }, [setLocalNodes, setLocalEdges]);
 
+  // 컨텍스트 메뉴 핸들러들
+  const handleHighlightUpstream = useCallback((nodeId: string) => {
+    const result = findUpstreamNodes(nodeId, baseNodes, baseEdges);
+    setUpstreamResult(result);
+    setIsUpstreamHighlighted(true);
+  }, [baseNodes, baseEdges]);
+
+  const handleEditDetails = useCallback((node: Node) => {
+    setSelectedNode(node);
+    setIsDetailPanelOpen(true);
+  }, []);
+
+  const handleDuplicateNode = useCallback((node: Node) => {
+    const newNode = createDefaultNode(
+      `${Date.now()}`,
+      `${node.data.originalLabel || node.data.label} (복사본)`,
+      node.data.nodeType,
+      {
+        x: node.position.x + 50,
+        y: node.position.y + 50
+      },
+      node.data.progress || 0,
+      false
+    );
+    setLocalNodes((nds) => [...nds, newNode]);
+    toast.success('노드가 복제되었습니다');
+  }, [setLocalNodes]);
+
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    setLocalNodes((nds) => nds.filter(n => n.id !== nodeId));
+    setLocalEdges((eds) => eds.filter(e => e.source !== nodeId && e.target !== nodeId));
+    toast.success('노드가 삭제되었습니다');
+  }, [setLocalNodes, setLocalEdges]);
+
+  const handleAddChildNode = useCallback((parentNode: Node, childType: NodeType) => {
+    const childTypeName = {
+      [NodeType.VALUE]: '가치관',
+      [NodeType.LONG_GOAL]: '장기목표',
+      [NodeType.SHORT_GOAL]: '단기목표',
+      [NodeType.PLAN]: '계획',
+      [NodeType.TASK]: '할일'
+    }[childType];
+
+    const newNode = createDefaultNode(
+      `${Date.now()}`,
+      `새 ${childTypeName}`,
+      childType,
+      {
+        x: parentNode.position.x,
+        y: parentNode.position.y + 150
+      },
+      0,
+      false
+    );
+
+    const newEdge: Edge = {
+      id: `e${parentNode.id}-${newNode.id}`,
+      source: parentNode.id,
+      target: newNode.id
+    };
+
+    setLocalNodes((nds) => [...nds, newNode]);
+    setLocalEdges((eds) => [...eds, newEdge]);
+    toast.success(`${childTypeName}이(가) 추가되었습니다`);
+  }, [setLocalNodes, setLocalEdges]);
+
+  const handleToggleComplete = useCallback((node: Node) => {
+    const newCompleted = !node.data.completed;
+    handleNodeUpdate(node.id, { 
+      completed: newCompleted,
+      progress: newCompleted ? 100 : node.data.progress || 0
+    });
+    toast.success(newCompleted ? '완료 표시되었습니다' : '완료가 취소되었습니다');
+  }, [handleNodeUpdate]);
+
+  const handleSetPriority = useCallback((node: Node) => {
+    const priorities = ['low', 'medium', 'high'] as const;
+    const currentIndex = priorities.indexOf(node.data.priority || 'medium');
+    const nextIndex = (currentIndex + 1) % priorities.length;
+    const newPriority = priorities[nextIndex];
+    
+    handleNodeUpdate(node.id, { priority: newPriority });
+    
+    const priorityNames = {
+      low: '낮음',
+      medium: '보통', 
+      high: '높음'
+    };
+    toast.success(`우선순위가 "${priorityNames[newPriority]}"으로 변경되었습니다`);
+  }, [handleNodeUpdate]);
+
   return (
     <div className="w-full h-full flex flex-col">
       {/* 툴바 */}
@@ -666,7 +775,7 @@ function BlueprintCanvasInner({
           <div className="flex items-center gap-4 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span>💡</span>
-              <span>노드 클릭: 상위 목표 하이라이트 + 상세 정보{editable ? ' | 더블클릭: 빠른 편집' : ''}</span>
+              <span>클릭: 상세 정보 | 우클릭: 메뉴{editable ? ' | 더블클릭: 빠른 편집' : ''}</span>
             </div>
             {isUpstreamHighlighted && (
               <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg">
@@ -693,6 +802,7 @@ function BlueprintCanvasInner({
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onNodeContextMenu={onNodeContextMenu}
           onNodeDoubleClick={onNodeDoubleClick}
           fitViewOptions={{ padding: 50 }}
           attributionPosition="bottom-left"
@@ -724,6 +834,21 @@ function BlueprintCanvasInner({
             </div>
           </div>
         )}
+        
+        {/* 컨텍스트 메뉴 */}
+        <ContextMenu
+          node={contextMenu.node}
+          position={contextMenu.position}
+          visible={contextMenu.visible}
+          onClose={() => setContextMenu({ node: null, position: { x: 0, y: 0 }, visible: false })}
+          onHighlightUpstream={handleHighlightUpstream}
+          onEditDetails={handleEditDetails}
+          onDuplicate={handleDuplicateNode}
+          onDelete={handleDeleteNode}
+          onAddChild={editable ? handleAddChildNode : undefined}
+          onToggleComplete={editable ? handleToggleComplete : undefined}
+          onSetPriority={editable ? handleSetPriority : undefined}
+        />
       </div>
 
       {/* 노드 세부 정보 패널 */}

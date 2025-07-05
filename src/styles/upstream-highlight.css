@@ -3,50 +3,63 @@
 /* 선택된 노드 */
 .react-flow__node.node-selected {
   border: 3px solid #3B82F6 !important;
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5) !important;
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8) !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
   transform: scale(1.05);
   transition: all 0.3s ease;
   z-index: 1000;
+  color: white !important;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 /* 1단계 상위 노드 (직접 부모) */
 .react-flow__node.node-upstream-level-1 {
   border: 3px solid #10B981 !important;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.2)) !important;
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4) !important;
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
   transform: scale(1.03);
   transition: all 0.3s ease;
   z-index: 999;
+  color: white !important;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* 2단계 상위 노드 */
 .react-flow__node.node-upstream-level-2 {
   border: 2px solid #34D399 !important;
-  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(52, 211, 153, 0.15)) !important;
-  box-shadow: 0 0 12px rgba(52, 211, 153, 0.3) !important;
+  background: linear-gradient(135deg, #34D399, #10B981) !important;
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
   transition: all 0.3s ease;
   z-index: 998;
+  color: white !important;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* 3단계 이상 상위 노드 */
 .react-flow__node.node-upstream-level-3-plus {
   border: 1px solid #6EE7B7 !important;
-  background: linear-gradient(135deg, rgba(110, 231, 183, 0.05), rgba(110, 231, 183, 0.1)) !important;
-  box-shadow: 0 0 8px rgba(110, 231, 183, 0.2) !important;
+  background: linear-gradient(135deg, #6EE7B7, #34D399) !important;
+  box-shadow: 0 0 8px rgba(110, 231, 183, 0.2);
   transition: all 0.3s ease;
   z-index: 997;
+  color: #065F46 !important;
+  font-weight: 500;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.5);
 }
 
 /* 하이라이트된 엣지 */
 .react-flow__edge.edge-highlighted {
-  stroke: #3B82F6 !important;
-  stroke-width: 3px !important;
+  stroke: #3B82F6;
+  stroke-width: 3px;
   z-index: 1001;
 }
 
 .react-flow__edge.edge-highlighted .react-flow__edge-path {
-  stroke: #3B82F6 !important;
-  stroke-width: 3px !important;
+  stroke: #3B82F6;
+  stroke-width: 3px;
   stroke-dasharray: 8, 4;
   animation: dash-flow 2s linear infinite;
 }
@@ -63,25 +76,25 @@
 
 /* 비활성 노드 */
 .react-flow__node.node-dimmed {
-  opacity: 0.3 !important;
+  opacity: 0.3;
   transition: opacity 0.3s ease;
   filter: grayscale(0.5);
 }
 
 /* 비활성 엣지 */
 .react-flow__edge.edge-dimmed {
-  opacity: 0.2 !important;
+  opacity: 0.2;
   transition: opacity 0.3s ease;
 }
 
 .react-flow__edge.edge-dimmed .react-flow__edge-path {
-  opacity: 0.2 !important;
+  opacity: 0.2;
 }
 
 /* 호버 효과 (미리보기) */
 .react-flow__node:hover.node-preview {
-  border: 2px dashed #8B5CF6 !important;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3) !important;
+  border: 2px dashed #8B5CF6;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3);
   transition: all 0.2s ease;
 }
 
