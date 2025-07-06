@@ -1,20 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import FollowButton from '@/components/FollowButton';
-import { getCurrentUser, filterGalleryBlueprints } from '@/utils/simpleAuth';
+import { filterGalleryBlueprints } from '@/utils/simpleAuth';
 import { DevAuthPanel } from '@/components/SimpleAccessControl';
 
 export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [sortBy, setSortBy] = useState('latest');
   const [showDevAuth, setShowDevAuth] = useState(false);
-  const [currentUser, setCurrentUser] = useState(getCurrentUser());
 
-  useEffect(() => {
-    setCurrentUser(getCurrentUser());
-  }, []);
 
   const categories = ['전체', '창업', '학습', '건강', '창작', '자기계발', '커리어'];
   
@@ -118,7 +114,7 @@ export default function GalleryPage() {
   ];
 
   // 갤러리에는 public 청사진만 표시
-  const publicBlueprints = filterGalleryBlueprints(sampleBlueprints, currentUser);
+  const publicBlueprints = filterGalleryBlueprints(sampleBlueprints);
   
   const filteredBlueprints = publicBlueprints
     .filter(blueprint => selectedCategory === '전체' || blueprint.category === selectedCategory)

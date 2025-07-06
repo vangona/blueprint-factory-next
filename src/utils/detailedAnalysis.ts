@@ -91,10 +91,10 @@ function extractValidBlueprints(blueprints: unknown[]) {
     return blueprint && 
            typeof blueprint === 'object' && 
            'nodes' in blueprint && 
-           Array.isArray((blueprint as any).nodes);
+           Array.isArray((blueprint as { nodes?: unknown[] }).nodes);
   }) as Array<{ 
-    nodes: any[]; 
-    edges?: any[]; 
+    nodes: Array<{ id: string; data: Record<string, unknown> }>; 
+    edges?: Array<{ id: string; source: string; target: string }>; 
     title?: string; 
     category?: string; 
     lastModified?: string;
@@ -104,7 +104,7 @@ function extractValidBlueprints(blueprints: unknown[]) {
 
 // 모든 노드 추출
 function extractAllNodes(blueprints: ReturnType<typeof extractValidBlueprints>) {
-  const nodes: any[] = [];
+  const nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }> = [];
   blueprints.forEach(blueprint => {
     if (blueprint.nodes) {
       blueprint.nodes.forEach(node => {
@@ -122,7 +122,7 @@ function extractAllNodes(blueprints: ReturnType<typeof extractValidBlueprints>) 
 }
 
 // 기본 통계 계산
-function calculateSummaryStats(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: any[]) {
+function calculateSummaryStats(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }>) {
   const completedNodes = nodes.filter(node => 
     node.data && node.data.completed === true
   );
@@ -137,13 +137,13 @@ function calculateSummaryStats(blueprints: ReturnType<typeof extractValidBluepri
 }
 
 // 목표 유형별 분석
-function analyzeGoalTypes(nodes: any[]) {
+function analyzeGoalTypes(nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }>) {
   const typeStats = new Map<string, { total: number; completed: number; progress: number[] }>();
   
   nodes.forEach(node => {
     if (!node.data) return;
     
-    const type = node.data.type || '기타';
+    const type = (typeof node.data.type === 'string' ? node.data.type : '기타') as string;
     const isCompleted = node.data.completed === true;
     const progress = typeof node.data.progress === 'number' ? node.data.progress : 0;
     
@@ -208,7 +208,7 @@ function determinePriority(nodeCount: number, completionRate: number): 'high' | 
 }
 
 // 시간 패턴 분석
-function analyzeTimePatterns(nodes: any[]) {
+function analyzeTimePatterns(nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }>) {
   const creationPattern: { [key: string]: number } = {};
   const completionPattern: { [key: string]: number } = {};
   const weeklyActivity: { [key: string]: number } = {};
@@ -256,13 +256,13 @@ function analyzeConnectivity(blueprints: ReturnType<typeof extractValidBlueprint
     
     // 노드별 연결 수 계산
     const nodeConnections = new Map<string, number>();
-    edges.forEach((edge: any) => {
+    edges.forEach((edge: { source?: string; target?: string }) => {
       if (edge.source) nodeConnections.set(edge.source, (nodeConnections.get(edge.source) || 0) + 1);
       if (edge.target) nodeConnections.set(edge.target, (nodeConnections.get(edge.target) || 0) + 1);
     });
     
     // 연결되지 않은 노드 계산
-    nodes.forEach((node: any) => {
+    nodes.forEach((node: { id: string; data?: { label?: string } }) => {
       const connections = nodeConnections.get(node.id) || 0;
       if (connections === 0) isolatedNodes++;
       
@@ -286,7 +286,7 @@ function analyzeConnectivity(blueprints: ReturnType<typeof extractValidBlueprint
 }
 
 // 성장 지표 계산
-function calculateGrowthMetrics(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: any[]) {
+function calculateGrowthMetrics(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }>) {
   const completionRate = nodes.length > 0 
     ? (nodes.filter(n => n.data?.completed).length / nodes.length) * 100 
     : 0;
@@ -312,7 +312,7 @@ function calculateGrowthMetrics(blueprints: ReturnType<typeof extractValidBluepr
 }
 
 // 개선 제안 생성
-function generateRecommendations(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: any[]) {
+function generateRecommendations(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }>) {
   const recommendations: DetailedAnalysisData['recommendations'] = [];
   
   const completionRate = nodes.length > 0 
@@ -352,7 +352,7 @@ function generateRecommendations(blueprints: ReturnType<typeof extractValidBluep
 }
 
 // 인사이트 추출
-function extractInsights(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: any[]) {
+function extractInsights(blueprints: ReturnType<typeof extractValidBlueprints>, nodes: Array<{ id: string; data: Record<string, unknown>; blueprintTitle?: string; blueprintCategory?: string }>) {
   const completionRate = nodes.length > 0 
     ? (nodes.filter(n => n.data?.completed).length / nodes.length) * 100 
     : 0;

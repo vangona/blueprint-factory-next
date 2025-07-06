@@ -5960,7 +5960,7 @@ export default function BlueprintDetailPage({ params }: PageProps) {
   }, []);
 
   if (!blueprint) {
-    return <RestrictedContent hasAccess={false} reason="not-found" />;
+    return <RestrictedContent hasAccess={false} reason="not-found">{null}</RestrictedContent>;
   }
 
   // 접근 권한 확인
@@ -5972,7 +5972,9 @@ export default function BlueprintDetailPage({ params }: PageProps) {
         hasAccess={false} 
         reason="private" 
         blueprintTitle={blueprint.title}
-      />
+      >
+        {null}
+      </RestrictedContent>
     );
   }
 

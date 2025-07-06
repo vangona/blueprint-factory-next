@@ -10,7 +10,6 @@ export default function AnalysisPage() {
     isAnalyzing,
     error,
     performAnalysis,
-    canAnalyze,
     getAnalysisRequirements,
     reset
   } = useDetailedAnalysis();
@@ -21,7 +20,7 @@ export default function AnalysisPage() {
   const handleStartAnalysis = async () => {
     try {
       await performAnalysis();
-    } catch (error) {
+    } catch {
       // 에러는 훅에서 처리됨
     }
   };
@@ -206,7 +205,7 @@ export default function AnalysisPage() {
                 ].map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setCurrentTab(tab.id as any)}
+                    onClick={() => setCurrentTab(tab.id as 'overview' | 'insights' | 'recommendations')}
                     className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
                       currentTab === tab.id
                         ? 'bg-indigo-500 text-white shadow-lg'
@@ -221,22 +220,22 @@ export default function AnalysisPage() {
             </div>
 
             {/* 탭 콘텐츠 */}
-            {currentTab === 'overview' && (
-              <OverviewTab basicAnalysis={result.basicAnalysis} />
+            {currentTab === 'overview' && result && (
+              <OverviewTab basicAnalysis={result.basicAnalysis as { summary: { totalBlueprints: number; totalNodes: number; completedGoals: number; completionRate: number }; goalTypeAnalysis: Array<{ type: string; count: number; completionRate: number }>; categoryAnalysis: Array<{ category: string; priority: string; nodeCount: number; completedCount: number; completionRate: number }> }} />
             )}
             
-            {currentTab === 'insights' && (
+            {currentTab === 'insights' && result && (
               <InsightsTab 
-                aiInsights={result.aiInsights} 
+                aiInsights={result.aiInsights as AIInsights} 
                 hasAIInsights={result.hasAIInsights}
-                basicAnalysis={result.basicAnalysis}
+                basicAnalysis={result.basicAnalysis as BasicAnalysis}
               />
             )}
             
-            {currentTab === 'recommendations' && (
+            {currentTab === 'recommendations' && result && (
               <RecommendationsTab 
-                aiInsights={result.aiInsights}
-                basicAnalysis={result.basicAnalysis}
+                aiInsights={result.aiInsights as AIInsights}
+                basicAnalysis={result.basicAnalysis as BasicAnalysis}
                 hasAIInsights={result.hasAIInsights}
               />
             )}
@@ -248,7 +247,7 @@ export default function AnalysisPage() {
 }
 
 // 개요 탭 컴포넌트
-function OverviewTab({ basicAnalysis }: { basicAnalysis: any }) {
+function OverviewTab({ basicAnalysis }: { basicAnalysis: { summary: { totalBlueprints: number; totalNodes: number; completedGoals: number; completionRate: number }; goalTypeAnalysis: Array<{ type: string; count: number; completionRate: number }>; categoryAnalysis: Array<{ category: string; priority: string; nodeCount: number; completedCount: number; completionRate: number }> } }) {
   return (
     <div className="space-y-6">
       {/* 기본 통계 */}
@@ -280,7 +279,7 @@ function OverviewTab({ basicAnalysis }: { basicAnalysis: any }) {
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
         <h3 className="text-xl font-bold text-gray-800 mb-4">🎯 목표 유형별 현황</h3>
         <div className="space-y-3">
-          {basicAnalysis.goalTypeAnalysis.map((type: any, index: number) => (
+          {basicAnalysis.goalTypeAnalysis.map((type, index: number) => (
             <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div>
                 <span className="font-medium text-gray-800">{type.type}</span>
@@ -306,7 +305,7 @@ function OverviewTab({ basicAnalysis }: { basicAnalysis: any }) {
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
         <h3 className="text-xl font-bold text-gray-800 mb-4">📂 카테고리별 현황</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {basicAnalysis.categoryAnalysis.map((category: any, index: number) => (
+          {basicAnalysis.categoryAnalysis.map((category: { category: string; priority: string; nodeCount: number; completedCount: number; completionRate: number }, index: number) => (
             <div key={index} className="p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="font-medium text-gray-800">{category.category}</h4>
@@ -337,10 +336,46 @@ function OverviewTab({ basicAnalysis }: { basicAnalysis: any }) {
 }
 
 // 인사이트 탭 컴포넌트  
+interface AIInsights {
+  overview: {
+    title: string;
+    summary: string;
+    keyFindings: string[];
+  };
+  deepInsights: {
+    behaviorPatterns: string[];
+    motivationDrivers: string[];
+    personalityTraits: string[];
+    workStyle: string[];
+  };
+  strategicRecommendations?: {
+    shortTerm: Array<{ action: string; rationale: string; expectedOutcome: string }>;
+    longTerm: Array<{ strategy: string; rationale: string; milestones: string[] }>;
+  };
+  riskAssessment?: {
+    potentialChallenges: string[];
+    mitigationStrategies: string[];
+    warningSignals: string[];
+  };
+}
+
+interface BasicAnalysis {
+  insights: {
+    strengths: string[];
+    improvements: string[];
+  };
+  recommendations: Array<{
+    priority: 'high' | 'medium' | 'low';
+    title: string;
+    description: string;
+    actionItems: string[];
+  }>;
+}
+
 function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: { 
-  aiInsights: any; 
+  aiInsights: AIInsights; 
   hasAIInsights: boolean;
-  basicAnalysis: any;
+  basicAnalysis: BasicAnalysis;
 }) {
   if (!hasAIInsights) {
     return (
@@ -375,7 +410,7 @@ function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: {
         <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
           <h4 className="font-medium text-indigo-800 mb-2">핵심 발견사항</h4>
           <ul className="text-sm text-indigo-700 space-y-1">
-            {aiInsights.overview.keyFindings.map((finding: string, index: number) => (
+            {aiInsights.overview.keyFindings.map((finding, index: number) => (
               <li key={index}>• {finding}</li>
             ))}
           </ul>
@@ -387,7 +422,7 @@ function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
           <h4 className="font-bold text-gray-800 mb-3">🔄 행동 패턴</h4>
           <ul className="text-sm text-gray-700 space-y-2">
-            {aiInsights.deepInsights.behaviorPatterns.map((pattern: string, index: number) => (
+            {aiInsights.deepInsights.behaviorPatterns.map((pattern, index: number) => (
               <li key={index} className="flex items-start gap-2">
                 <span className="text-blue-500 mt-1">•</span>
                 <span>{pattern}</span>
@@ -399,7 +434,7 @@ function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
           <h4 className="font-bold text-gray-800 mb-3">💡 동기 요인</h4>
           <ul className="text-sm text-gray-700 space-y-2">
-            {aiInsights.deepInsights.motivationDrivers.map((driver: string, index: number) => (
+            {aiInsights.deepInsights.motivationDrivers.map((driver, index: number) => (
               <li key={index} className="flex items-start gap-2">
                 <span className="text-purple-500 mt-1">•</span>
                 <span>{driver}</span>
@@ -411,7 +446,7 @@ function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
           <h4 className="font-bold text-gray-800 mb-3">🧠 성격 특성</h4>
           <ul className="text-sm text-gray-700 space-y-2">
-            {aiInsights.deepInsights.personalityTraits.map((trait: string, index: number) => (
+            {aiInsights.deepInsights.personalityTraits.map((trait, index: number) => (
               <li key={index} className="flex items-start gap-2">
                 <span className="text-green-500 mt-1">•</span>
                 <span>{trait}</span>
@@ -423,7 +458,7 @@ function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
           <h4 className="font-bold text-gray-800 mb-3">⚡ 작업 스타일</h4>
           <ul className="text-sm text-gray-700 space-y-2">
-            {aiInsights.deepInsights.workStyle.map((style: string, index: number) => (
+            {aiInsights.deepInsights.workStyle.map((style, index: number) => (
               <li key={index} className="flex items-start gap-2">
                 <span className="text-orange-500 mt-1">•</span>
                 <span>{style}</span>
@@ -438,8 +473,8 @@ function InsightsTab({ aiInsights, hasAIInsights, basicAnalysis }: {
 
 // 제안 탭 컴포넌트
 function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
-  aiInsights: any;
-  basicAnalysis: any;
+  aiInsights: AIInsights;
+  basicAnalysis: BasicAnalysis;
   hasAIInsights: boolean;
 }) {
   return (
@@ -450,7 +485,7 @@ function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
             <h3 className="text-xl font-bold text-gray-800 mb-4">🚀 단기 액션 플랜</h3>
             <div className="space-y-4">
-              {aiInsights.strategicRecommendations.shortTerm.map((action: any, index: number) => (
+              {aiInsights.strategicRecommendations.shortTerm.map((action, index: number) => (
                 <div key={index} className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <h4 className="font-medium text-green-800 mb-2">{action.action}</h4>
                   <p className="text-sm text-green-700 mb-2">{action.rationale}</p>
@@ -466,14 +501,14 @@ function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
           <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
             <h3 className="text-xl font-bold text-gray-800 mb-4">🎯 장기 전략</h3>
             <div className="space-y-4">
-              {aiInsights.strategicRecommendations.longTerm.map((strategy: any, index: number) => (
+              {aiInsights.strategicRecommendations.longTerm.map((strategy, index: number) => (
                 <div key={index} className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                   <h4 className="font-medium text-blue-800 mb-2">{strategy.strategy}</h4>
                   <p className="text-sm text-blue-700 mb-3">{strategy.rationale}</p>
                   <div>
                     <strong className="text-xs text-blue-600">마일스톤:</strong>
                     <ul className="text-xs text-blue-600 mt-1 ml-4">
-                      {strategy.milestones.map((milestone: string, idx: number) => (
+                      {strategy.milestones.map((milestone, idx: number) => (
                         <li key={idx}>• {milestone}</li>
                       ))}
                     </ul>
@@ -491,7 +526,7 @@ function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                   <h4 className="font-medium text-red-800 mb-2">잠재적 도전</h4>
                   <ul className="text-sm text-red-700 space-y-1">
-                    {aiInsights.riskAssessment.potentialChallenges.map((challenge: string, index: number) => (
+                    {aiInsights.riskAssessment.potentialChallenges.map((challenge, index: number) => (
                       <li key={index}>• {challenge}</li>
                     ))}
                   </ul>
@@ -499,7 +534,7 @@ function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
                 <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <h4 className="font-medium text-yellow-800 mb-2">완화 전략</h4>
                   <ul className="text-sm text-yellow-700 space-y-1">
-                    {aiInsights.riskAssessment.mitigationStrategies.map((strategy: string, index: number) => (
+                    {aiInsights.riskAssessment.mitigationStrategies.map((strategy, index: number) => (
                       <li key={index}>• {strategy}</li>
                     ))}
                   </ul>
@@ -507,7 +542,7 @@ function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <h4 className="font-medium text-orange-800 mb-2">경고 신호</h4>
                   <ul className="text-sm text-orange-700 space-y-1">
-                    {aiInsights.riskAssessment.warningSignals.map((signal: string, index: number) => (
+                    {aiInsights.riskAssessment.warningSignals.map((signal, index: number) => (
                       <li key={index}>• {signal}</li>
                     ))}
                   </ul>
@@ -521,7 +556,7 @@ function RecommendationsTab({ aiInsights, basicAnalysis, hasAIInsights }: {
         <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-6 border border-gray-200">
           <h3 className="text-xl font-bold text-gray-800 mb-4">💡 기본 권장사항</h3>
           <div className="space-y-4">
-            {basicAnalysis.recommendations.map((rec: any, index: number) => (
+            {basicAnalysis.recommendations.map((rec, index: number) => (
               <div key={index} className={`p-4 rounded-lg border ${
                 rec.priority === 'high' ? 'bg-red-50 border-red-200' :
                 rec.priority === 'medium' ? 'bg-yellow-50 border-yellow-200' :

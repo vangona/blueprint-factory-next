@@ -265,7 +265,7 @@ export default function MyBlueprintsPage() {
                       ].map((option) => (
                         <button
                           key={option.value}
-                          onClick={() => updatePrivacy(blueprint.id, option.value as any)}
+                          onClick={() => updatePrivacy(blueprint.id, option.value as 'private' | 'unlisted' | 'followers' | 'public')}
                           className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-all text-left ${
                             blueprint.privacy === option.value
                               ? 'border-blue-500 bg-blue-100'

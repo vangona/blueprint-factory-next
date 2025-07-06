@@ -173,7 +173,7 @@ function BlueprintCanvasInner({
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [showAIWizard, setShowAIWizard] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // 상위 노드 하이라이트 상태

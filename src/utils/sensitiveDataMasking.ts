@@ -186,18 +186,18 @@ export function applyRoleBasedMasking(
  * 청사진 메타 정보 마스킹
  */
 export function maskBlueprintMeta(
-  blueprint: any,
+  blueprint: { authorId?: string; title?: string; description?: string; author?: string; [key: string]: unknown },
   userRole: string | null = null,
   currentUserId: string | null = null
-): any {
+): { authorId?: string; title?: string; description?: string; author?: string; [key: string]: unknown } {
   const isOwner = currentUserId === blueprint.authorId;
   
   return {
     ...blueprint,
-    title: applyRoleBasedMasking(blueprint.title, userRole, isOwner),
+    title: applyRoleBasedMasking(blueprint.title || '', userRole, isOwner),
     description: applyRoleBasedMasking(blueprint.description || '', userRole, isOwner),
     // 작성자 정보는 부분 마스킹
-    author: isOwner ? blueprint.author : maskPersonalInfo(blueprint.author),
+    author: isOwner ? blueprint.author : maskPersonalInfo(blueprint.author || ''),
   };
 }
 
@@ -205,10 +205,10 @@ export function maskBlueprintMeta(
  * 갤러리 청사진 목록 마스킹
  */
 export function maskGalleryBlueprints(
-  blueprints: any[],
+  blueprints: Array<{ authorId?: string; title?: string; description?: string; author?: string; [key: string]: unknown }>,
   userRole: string | null = null,
   currentUserId: string | null = null
-): any[] {
+): Array<{ authorId?: string; title?: string; description?: string; author?: string; [key: string]: unknown }> {
   return blueprints.map(blueprint => 
     maskBlueprintMeta(blueprint, userRole, currentUserId)
   );

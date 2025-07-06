@@ -24,7 +24,7 @@ export function AccessDenied({ reason, blueprintTitle }: AccessDeniedProps) {
             이 청사진은 작성자만 볼 수 있습니다.
             {blueprintTitle && (
               <span className="block mt-2 text-sm text-gray-500">
-                "{blueprintTitle}"
+                &ldquo;{blueprintTitle}&rdquo;
               </span>
             )}
           </p>

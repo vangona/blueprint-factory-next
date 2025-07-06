@@ -110,8 +110,7 @@ export function canDeleteBlueprint(
  * 갤러리에 표시할 청사진 필터링
  */
 export function filterGalleryBlueprints<T extends { privacy: string; authorId: string }>(
-  blueprints: T[],
-  currentUser?: User | null
+  blueprints: T[]
 ): T[] {
   return blueprints.filter(blueprint => {
     // public 청사진만 갤러리에 표시
