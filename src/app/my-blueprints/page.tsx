@@ -93,6 +93,35 @@ export default function MyBlueprintsPage() {
     }
   };
 
+  const shareBlueprint = (blueprint: SavedBlueprintWithId) => {
+    const baseUrl = window.location.origin;
+    const blueprintId = blueprint.id.replace('blueprint-', '');
+    const shareUrl = `${baseUrl}/blueprint?id=${blueprintId}&view=true`;
+    
+    if (navigator.share) {
+      // 모바일 네이티브 공유
+      navigator.share({
+        title: blueprint.title,
+        text: blueprint.description || '청사진을 확인해보세요!',
+        url: shareUrl
+      }).catch(console.error);
+    } else {
+      // 클립보드 복사
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('링크가 클립보드에 복사되었습니다!');
+      }).catch(() => {
+        // 클립보드 API가 실패하면 텍스트 선택 방식 사용
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('링크가 클립보드에 복사되었습니다!');
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -197,6 +226,15 @@ export default function MyBlueprintsPage() {
                   </div>
                   
                   <div className="flex items-center gap-2">
+                    {(blueprint.privacy === 'unlisted' || blueprint.privacy === 'public') && (
+                      <button
+                        onClick={() => shareBlueprint(blueprint)}
+                        className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                        title="공유하기"
+                      >
+                        🔗
+                      </button>
+                    )}
                     <button
                       onClick={() => setEditingPrivacy(editingPrivacy === blueprint.id ? null : blueprint.id)}
                       className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"

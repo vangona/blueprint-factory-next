@@ -173,6 +173,8 @@ function BlueprintCanvasInner({
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [showAIWizard, setShowAIWizard] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // 상위 노드 하이라이트 상태
   const [upstreamResult, setUpstreamResult] = useState<UpstreamResult | null>(null);
@@ -797,6 +799,32 @@ function BlueprintCanvasInner({
 
       {/* React Flow 캔버스 */}
       <div className="flex-1 relative">
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg flex items-center gap-3">
+              <span>⚠️</span>
+              <span>{error}</span>
+              <button 
+                onClick={() => setError(null)}
+                className="text-red-500 hover:text-red-700 ml-2"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 로딩 오버레이 */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-40">
+            <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-4">
+              <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-gray-700 font-medium">처리 중...</span>
+            </div>
+          </div>
+        )}
+
         <ReactFlow
           nodes={nodes}
           edges={edges}

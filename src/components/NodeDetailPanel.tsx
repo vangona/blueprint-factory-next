@@ -61,6 +61,24 @@ export default function NodeDetailPanel({
     }
   }, [node, localData, onUpdate, onClose]);
 
+  // 키보드 이벤트 핸들러
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+    } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && canEdit) {
+      e.preventDefault();
+      handleSave();
+    }
+  }, [onClose, handleSave, canEdit]);
+
+  // 키보드 이벤트 리스너 등록
+  useEffect(() => {
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isOpen, handleKeyDown]);
+
   if (!isOpen || !node) return null;
 
   const getNodeTypeLabel = (type: string | undefined) => {
@@ -96,22 +114,28 @@ export default function NodeDetailPanel({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 헤더 - 권한 상태에 따른 색상 변경 */}
-        <div className={`p-6 text-white ${
+        <div className={`p-4 sm:p-6 text-white ${
           canEdit 
             ? 'bg-gradient-to-r from-blue-600 to-purple-600' 
             : 'bg-gradient-to-r from-gray-600 to-gray-700'
         }`}>
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">
+              <div className="flex items-center gap-2 sm:gap-3 mb-3">
+                <span className="text-2xl sm:text-3xl">
                   {getNodeTypeIcon(localData.nodeType)}
                 </span>
                 <div>
-                  <h2 className="text-2xl font-bold">
+                  <h2 className="text-xl sm:text-2xl font-bold">
                     {getNodeTypeLabel(localData.nodeType)} 세부 정보
                   </h2>
                   {/* 권한 상태 표시 */}
@@ -166,14 +190,15 @@ export default function NodeDetailPanel({
             
             <button 
               onClick={onClose}
-              className="text-white/80 hover:text-white text-2xl font-bold transition-colors ml-4"
+              className="text-white/80 hover:text-white text-xl sm:text-2xl font-bold transition-colors ml-2 sm:ml-4 p-1"
+              aria-label="닫기"
             >
               ✕
             </button>
           </div>
         </div>
         
-        <div className="flex-1 p-6 overflow-y-auto">
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
 
         <div className="space-y-4">
           {/* 제목 */}
@@ -358,10 +383,10 @@ export default function NodeDetailPanel({
                         <button
                           key={upstream.id}
                           onClick={() => onNavigateToNode?.(upstream.id)}
-                          className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left group"
+                          className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors text-left group"
                           disabled={!onNavigateToNode}
                         >
-                          <span className="text-lg">{getNodeTypeIcon(upstream.nodeType)}</span>
+                          <span className="text-base sm:text-lg flex-shrink-0">{getNodeTypeIcon(upstream.nodeType)}</span>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-gray-800 truncate">
                               {upstream.label}
@@ -371,7 +396,7 @@ export default function NodeDetailPanel({
                             </div>
                           </div>
                           {onNavigateToNode && (
-                            <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                               →
                             </span>
                           )}
@@ -397,10 +422,10 @@ export default function NodeDetailPanel({
                         <button
                           key={downstream.id}
                           onClick={() => onNavigateToNode?.(downstream.id)}
-                          className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left group"
+                          className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-green-50 hover:bg-green-100 rounded-lg transition-colors text-left group"
                           disabled={!onNavigateToNode}
                         >
-                          <span className="text-lg">{getNodeTypeIcon(downstream.nodeType)}</span>
+                          <span className="text-base sm:text-lg flex-shrink-0">{getNodeTypeIcon(downstream.nodeType)}</span>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-gray-800 truncate">
                               {downstream.label}
@@ -410,7 +435,7 @@ export default function NodeDetailPanel({
                             </div>
                           </div>
                           {onNavigateToNode && (
-                            <span className="text-green-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-green-500 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                               →
                             </span>
                           )}
@@ -433,7 +458,7 @@ export default function NodeDetailPanel({
             <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
               📊 목표 정보
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* 작성자 정보 */}
               {blueprintAuthorId && (
                 <div className="bg-blue-50 rounded-lg p-3">
@@ -488,31 +513,33 @@ export default function NodeDetailPanel({
         </div>
         
         {/* 버튼 - flex-shrink-0으로 고정 */}
-        <div className={`flex-shrink-0 p-6 border-t border-gray-100 ${
+        <div className={`flex-shrink-0 p-4 sm:p-6 border-t border-gray-100 ${
           canEdit ? 'bg-gray-50' : 'bg-gray-100'
         }`}>
           <div className="flex gap-3">
             {canEdit && (
               <button
                 onClick={handleSave}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="flex-1 px-4 sm:px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                title="Ctrl+Enter (또는 Cmd+Enter)로 저장"
               >
                 💾 저장하기
               </button>
             )}
             <button
               onClick={onClose}
-              className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+              className={`flex-1 px-4 sm:px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
                 canEdit 
                   ? 'border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50' 
                   : 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 shadow-lg hover:shadow-xl'
               }`}
+              title="ESC로 닫기"
             >
               {canEdit ? '❌ 취소' : '✅ 닫기'}
             </button>
           </div>
           
-          {/* 권한 안내 메시지 */}
+          {/* 권한 안내 메시지 및 키보드 단축키 */}
           {!canEdit && blueprintAuthorId && currentUser?.id !== blueprintAuthorId && (
             <div className="mt-3 text-center">
               <p className="text-sm text-gray-600">
@@ -520,6 +547,13 @@ export default function NodeDetailPanel({
               </p>
             </div>
           )}
+          
+          {/* 키보드 단축키 안내 */}
+          <div className="mt-2 text-center">
+            <p className="text-xs text-gray-500">
+              {canEdit && 'Ctrl+Enter로 저장 • '}ESC로 닫기
+            </p>
+          </div>
         </div>
       </div>
     </div>
