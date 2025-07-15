@@ -1,4 +1,4 @@
-# Blueprint Factory MVP - AI 기능 상세
+테# Blueprint Factory MVP - AI 기능 상세
 
 ## AI가 필수인 이유
 1. **2025년 기준 UX 기대치**: AI 없는 서비스는 구식으로 인식
