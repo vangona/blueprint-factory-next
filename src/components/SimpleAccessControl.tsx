@@ -148,12 +148,9 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
           </div>
           <div className="space-y-2">
             <button
-              onClick={() => {
-                localStorage.setItem('current-user', JSON.stringify({
-                  id: 'user-1',
-                  username: '김개발',
-                  role: 'user'
-                }));
+              onClick={async () => {
+                const { devLogin } = await import('@/utils/simpleAuth');
+                await devLogin('user-1');
                 window.location.reload();
               }}
               className={`block w-full px-3 py-2 text-left rounded transition-colors text-sm ${
@@ -165,12 +162,9 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
               👤 일반 사용자 {currentUser?.id === 'user-1' && '✓'}
             </button>
             <button
-              onClick={() => {
-                localStorage.setItem('current-user', JSON.stringify({
-                  id: 'user-senior-dev',
-                  username: '김시니어',
-                  role: 'user'
-                }));
+              onClick={async () => {
+                const { devLogin } = await import('@/utils/simpleAuth');
+                await devLogin('user-senior-dev');
                 window.location.reload();
               }}
               className={`block w-full px-3 py-2 text-left rounded transition-colors text-sm ${
@@ -182,12 +176,9 @@ export function DevAuthPanel({ isVisible, onToggle }: DevAuthPanelProps) {
               💻 김시니어 (청사진 작성자) {currentUser?.id === 'user-senior-dev' && '✓'}
             </button>
             <button
-              onClick={() => {
-                localStorage.setItem('current-user', JSON.stringify({
-                  id: 'user-admin',
-                  username: '관리자',
-                  role: 'admin'
-                }));
+              onClick={async () => {
+                const { devLogin } = await import('@/utils/simpleAuth');
+                await devLogin('user-admin');
                 window.location.reload();
               }}
               className={`block w-full px-3 py-2 text-left rounded transition-colors text-sm ${

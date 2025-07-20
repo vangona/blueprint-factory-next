@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { NestedThought, ThoughtLayer } from '@/types/thought-layering';
+import { useState, useRef } from 'react';
+import { NestedThought } from '@/types/thought-layering';
 
 interface ThoughtLayeringCanvasProps {
   thought: NestedThought;

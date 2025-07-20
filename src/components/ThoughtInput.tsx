@@ -64,7 +64,7 @@ export function ThoughtInput({ onAddThought }: ThoughtInputProps) {
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setType(option.value as any)}
+                onClick={() => setType(option.value as 'exploration' | 'specification' | 'execution')}
                 className={`flex-1 p-3 rounded-lg border-2 transition-all duration-200 ${
                   type === option.value
                     ? `border-current ${option.color} ${option.bg}`

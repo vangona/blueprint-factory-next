@@ -1,136 +1,127 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import FollowButton from '@/components/FollowButton';
-import { filterGalleryBlueprints } from '@/utils/simpleAuth';
 import { DevAuthPanel } from '@/components/SimpleAccessControl';
+import { BlueprintService } from '@/services/blueprintService';
+import { Database } from '@/types/database.types';
+
+type BlueprintGallery = Database['public']['Views']['blueprint_gallery']['Row'];
 
 export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [sortBy, setSortBy] = useState('latest');
+  const [sortBy, setSortBy] = useState<'created_at' | 'view_count' | 'like_count'>('created_at');
   const [showDevAuth, setShowDevAuth] = useState(false);
+  const [blueprints, setBlueprints] = useState<BlueprintGallery[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
 
-  const categories = ['전체', '창업', '학습', '건강', '창작', '자기계발', '커리어'];
-  
-  const sampleBlueprints = [
-    {
-      id: 1,
-      title: "주니어에서 시니어 개발자로 3년 성장기",
-      author: "김시니어",
-      authorId: "user-senior-dev",
-      authorAvatar: "👨‍💻",
-      description: "연봉 4천에서 1억까지, 체계적인 커리어 성장 전략",
-      thumbnail: "📈",
-      tags: ["개발자", "커리어", "시니어", "연봉협상"],
-      category: "커리어",
-      progress: 73,
-      viewCount: 3456,
-      likeCount: 234,
-      privacy: 'public' as const,
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 2,
-      title: "퇴사 없이 부업으로 월 500만원",
-      author: "박부업",
-      authorId: "user-side",
-      authorAvatar: "💼",
-      description: "본업 유지하며 온라인 강의로 수익 창출한 2년",
-      thumbnail: "💰",
-      tags: ["부업", "온라인강의", "수익화", "N잡러"],
-      category: "창업",
-      progress: 88,
-      viewCount: 5621,
-      likeCount: 412,
-      privacy: 'public' as const,
-      createdAt: new Date('2024-02-01'),
-    },
-    {
-      id: 3,
-      title: "비전공자 개발자 취업 성공기",
-      author: "이전직",
-      authorId: "user-career",
-      authorAvatar: "🎯",
-      description: "영업직에서 프론트엔드 개발자로 전직한 10개월",
-      thumbnail: "💻",
-      tags: ["비전공자", "부트캠프", "전직", "개발자"],
-      category: "커리어",
-      progress: 95,
-      viewCount: 8934,
-      likeCount: 567,
-      privacy: 'public' as const,
-      createdAt: new Date('2024-01-28'),
-    },
-    {
-      id: 4,
-      title: "대학원 진학부터 논문 게재까지",
-      author: "정연구",
-      authorId: "user-research",
-      authorAvatar: "🎓",
-      description: "석사 2년 동안 SCI 논문 3편 게재한 연구 로드맵",
-      thumbnail: "📚",
-      tags: ["대학원", "연구", "논문", "석사"],
-      category: "학습",
-      progress: 82,
-      viewCount: 2145,
-      likeCount: 178,
-      privacy: 'public' as const,
-      createdAt: new Date('2024-02-10'),
-    },
-    {
-      id: 5,
-      title: "운동 초보자의 -20kg 다이어트",
-      author: "김건강",
-      authorId: "user-health",
-      authorAvatar: "💪",
-      description: "6개월간 체지방률 35%→18% 변화 과정",
-      thumbnail: "🏃‍♂️",
-      tags: ["다이어트", "운동", "건강", "체중감량"],
-      category: "건강",
-      progress: 91,
-      viewCount: 6789,
-      likeCount: 489,
-      privacy: 'public' as const,
-      createdAt: new Date('2024-01-20'),
-    },
-    {
-      id: 6,
-      title: "인스타 1만 팔로워 쇼핑몰 창업",
-      author: "최대표",
-      authorId: "user-insta",
-      authorAvatar: "📸",
-      description: "SNS 마케팅으로 월매출 3천만원 달성한 1년",
-      thumbnail: "🛍️",
-      tags: ["인스타그램", "쇼핑몰", "창업", "마케팅"],
-      category: "창업",
-      progress: 79,
-      viewCount: 4567,
-      likeCount: 345,
-      privacy: 'public' as const,
-      createdAt: new Date('2024-02-05'),
-    },
-  ];
+  const categories = ['전체', '창업', '학습', '건강', '창작', '자기계발', '커리어', '기타'];
 
-  // 갤러리에는 public 청사진만 표시
-  const publicBlueprints = filterGalleryBlueprints(sampleBlueprints);
-  
-  const filteredBlueprints = publicBlueprints
-    .filter(blueprint => selectedCategory === '전체' || blueprint.category === selectedCategory)
-    .sort((a, b) => {
-      switch (sortBy) {
-        case 'popular':
-          return b.viewCount - a.viewCount;
-        case 'liked':
-          return b.likeCount - a.likeCount;
-        case 'progress':
-          return b.progress - a.progress;
-        case 'latest':
-        default:
-          return b.createdAt.getTime() - a.createdAt.getTime();
+  // Load blueprints from database
+  useEffect(() => {
+    const loadBlueprints = async () => {
+      setIsLoading(true);
+      try {
+        const blueprintService = new BlueprintService();
+        const data = await blueprintService.getGalleryBlueprints({
+          category: selectedCategory === '전체' ? undefined : selectedCategory,
+          sortBy,
+          limit: 50,
+        });
+        setBlueprints(data);
+      } catch (error) {
+        console.error('Failed to load blueprints:', error);
+        // Fallback to sample data if database is not available
+        setBlueprints(getSampleBlueprints());
+      } finally {
+        setIsLoading(false);
       }
-    });
+    };
+
+    loadBlueprints();
+  }, [selectedCategory, sortBy]);
+
+  // Sample data for development/fallback
+  const getSampleBlueprints = (): BlueprintGallery[] => {
+    return [
+      {
+        id: '1',
+        title: "주니어에서 시니어 개발자로 3년 성장기",
+        author_name: "김시니어",
+        author_id: "user-senior-dev",
+        description: "연봉 4천에서 1억까지, 체계적인 커리어 성장 전략",
+        thumbnail: "📈",
+        category: "커리어",
+        progress: 73,
+        node_count: 24,
+        view_count: 3456,
+        like_count: 234,
+        privacy: 'public',
+        created_at: new Date('2024-01-15').toISOString(),
+        updated_at: new Date('2024-01-15').toISOString(),
+      },
+      {
+        id: '2',
+        title: "퇴사 없이 부업으로 월 500만원",
+        author_name: "박부업",
+        author_id: "user-side",
+        description: "본업 유지하며 온라인 강의로 수익 창출한 2년",
+        thumbnail: "💰",
+        category: "창업",
+        progress: 88,
+        node_count: 18,
+        view_count: 5621,
+        like_count: 412,
+        privacy: 'public',
+        created_at: new Date('2024-02-01').toISOString(),
+        updated_at: new Date('2024-02-01').toISOString(),
+      },
+      {
+        id: '3',
+        title: "비전공자 개발자 취업 성공기",
+        author_name: "이전직",
+        author_id: "user-career",
+        description: "영업직에서 프론트엔드 개발자로 전직한 10개월",
+        thumbnail: "💻",
+        category: "커리어",
+        progress: 95,
+        node_count: 32,
+        view_count: 8934,
+        like_count: 567,
+        privacy: 'public',
+        created_at: new Date('2024-01-28').toISOString(),
+        updated_at: new Date('2024-01-28').toISOString(),
+      },
+    ];
+  };
+
+  const getAuthorAvatar = (authorName: string) => {
+    const avatars: Record<string, string> = {
+      "김시니어": "👨‍💻",
+      "박부업": "💼",
+      "이전직": "🎯",
+      "정연구": "🎓",
+      "김건강": "💪",
+      "최대표": "📸",
+    };
+    return avatars[authorName] || "👤";
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return '오늘';
+    if (days === 1) return '어제';
+    if (days < 7) return `${days}일 전`;
+    if (days < 30) return `${Math.floor(days / 7)}주 전`;
+    if (days < 365) return `${Math.floor(days / 30)}개월 전`;
+    return `${Math.floor(days / 365)}년 전`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -206,97 +197,116 @@ export default function GalleryPage() {
               <span className="text-sm font-medium text-gray-700">정렬:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => setSortBy(e.target.value as 'created_at' | 'view_count' | 'like_count')}
                 className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="latest">최신순</option>
-                <option value="popular">인기순</option>
-                <option value="liked">좋아요순</option>
-                <option value="progress">달성률순</option>
+                <option value="created_at">최신순</option>
+                <option value="view_count">인기순</option>
+                <option value="like_count">좋아요순</option>
               </select>
             </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredBlueprints.map((blueprint) => (
-            <Link
-              key={blueprint.id}
-              href={`/gallery/${blueprint.id}`}
-              className="group bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:scale-105 block"
-            >
-              <div className="text-6xl mb-6 text-center">{blueprint.thumbnail}</div>
-              
-              <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
-                {blueprint.title}
-              </h3>
-              
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm">{blueprint.authorAvatar}</span>
-                  </div>
-                  <span className="text-sm text-gray-600">by {blueprint.author}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FollowButton 
-                    targetUserId={blueprint.authorId}
-                    targetUsername={blueprint.author}
-                    size="sm"
-                  />
-                </div>
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="bg-white/80 rounded-2xl p-8 shadow-lg border border-gray-100 animate-pulse">
+                <div className="w-16 h-16 bg-gray-300 rounded-lg mx-auto mb-6"></div>
+                <div className="h-6 bg-gray-300 rounded mb-3"></div>
+                <div className="h-4 bg-gray-300 rounded mb-4"></div>
+                <div className="h-20 bg-gray-300 rounded"></div>
               </div>
-              
-              <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
-                <span className="flex items-center gap-1">
-                  👁️ {blueprint.viewCount.toLocaleString()}
-                </span>
-                <span className="flex items-center gap-1">
-                  ❤️ {blueprint.likeCount}
-                </span>
-              </div>
-              
-              <p className="text-gray-700 mb-6 leading-relaxed">
-                {blueprint.description}
-              </p>
-              
-              <div className="space-y-4">
-                {/* Progress */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-700">달성률</span>
-                    <span className="text-sm font-bold text-blue-600">{blueprint.progress}%</span>
+            ))}
+          </div>
+        ) : blueprints.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-xl text-gray-500">아직 등록된 청사진이 없습니다.</p>
+            <Link href="/blueprint/new" className="mt-4 inline-block px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg hover:shadow-lg transition-shadow">
+              첫 번째 청사진 만들기
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {blueprints.map((blueprint) => (
+              <Link
+                key={blueprint.id}
+                href={`/gallery/${blueprint.id}`}
+                className="group bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:scale-105 block"
+              >
+                <div className="text-6xl mb-6 text-center">{blueprint.thumbnail || "📋"}</div>
+                
+                <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                  {blueprint.title}
+                </h3>
+                
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-r from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                      <span className="text-sm">{getAuthorAvatar(blueprint.author_name ?? '')}</span>
+                    </div>
+                    <span className="text-sm text-gray-600">by {blueprint.author_name ?? 'Unknown'}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${blueprint.progress}%` }}
+                  <div className="flex items-center gap-2">
+                    <FollowButton 
+                      targetUserId={blueprint.author_id ?? ''}
+                      targetUsername={blueprint.author_name ?? ''}
+                      size="sm"
                     />
                   </div>
                 </div>
                 
-                {/* Tags */}
-                <div className="flex flex-wrap gap-2">
-                  {blueprint.tags.map((tag, index) => (
-                    <span 
-                      key={index}
-                      className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
-                    >
-                      {tag}
-                    </span>
-                  ))}
+                <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
+                  <span className="flex items-center gap-1">
+                    👁️ {(blueprint.view_count ?? 0).toLocaleString()}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    ❤️ {blueprint.like_count ?? 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    📅 {formatDate(blueprint.created_at ?? '')}
+                  </span>
                 </div>
                 
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="text-blue-600 group-hover:text-blue-700 font-semibold flex items-center gap-2">
-                    청사진 보기 
-                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                {blueprint.description && (
+                  <p className="text-gray-700 mb-6 leading-relaxed line-clamp-2">
+                    {blueprint.description}
+                  </p>
+                )}
+                
+                <div className="space-y-4">
+                  {/* Progress */}
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">달성률</span>
+                      <span className="text-sm font-bold text-blue-600">{Math.round(blueprint.progress ?? 0)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all"
+                        style={{ width: `${blueprint.progress ?? 0}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Node count */}
+                  <div className="flex items-center justify-between text-sm text-gray-600">
+                    <span>노드 수</span>
+                    <span className="font-medium">{blueprint.node_count ?? 0}개</span>
+                  </div>
+                  
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="text-blue-600 group-hover:text-blue-700 font-semibold flex items-center gap-2">
+                      청사진 보기 
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

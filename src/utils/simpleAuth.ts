@@ -145,10 +145,21 @@ export const SAMPLE_USERS = [
 /**
  * 개발용 빠른 로그인
  */
-export function devLogin(userId: string): boolean {
+export async function devLogin(userId: string): Promise<boolean> {
   const user = SAMPLE_USERS.find(u => u.id === userId);
   if (user) {
     setCurrentUser(user);
+    
+    // Create user in database if not exists
+    try {
+      const { UserService } = await import('@/services/userService');
+      const userService = new UserService();
+      await userService.createOrGetUser(user);
+    } catch (error) {
+      console.warn('Failed to sync user to database:', error);
+      // Continue with local auth even if database sync fails
+    }
+    
     return true;
   }
   return false;

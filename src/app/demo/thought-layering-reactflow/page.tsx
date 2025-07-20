@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import Link from 'next/link';
 import ReactFlow, { 
   Node, 
@@ -15,7 +15,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { ThoughtLayeringNode, thoughtLayeringNodeTypes } from '@/components/ThoughtLayeringNode';
+import {  thoughtLayeringNodeTypes } from '@/components/ThoughtLayeringNode';
 import { NestedThought } from '@/types/thought-layering';
 
 // 예시 데이터
@@ -184,7 +184,7 @@ const initialEdges: Edge[] = [
 ];
 
 export default function ThoughtLayeringReactFlowDemo() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onConnect = useCallback(

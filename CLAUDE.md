@@ -114,3 +114,6 @@ Mock data is used when OpenAI API key is not configured.
 - LocalStorage keys prefixed with `blueprint-`
 - Development users available via `SAMPLE_USERS` in `simpleAuth.ts`
 - AI analysis components follow similar patterns for data processing and visualization
+
+### 타입 안정성
+- 타입스크립트의 컨셉과 철학에 근거해서, 타입 안정성을 지켜주세요.
