@@ -18,6 +18,7 @@ import {
 } from 'reactflow';
 import { NodeType } from '@/types/blueprint';
 import { useBlueprint } from '@/hooks/useBlueprint';
+import { useBlueprintSupabase } from '@/hooks/useBlueprintSupabase';
 import NodeDetailPanel from './NodeDetailPanel';
 import { stratify, tree, HierarchyNode } from 'd3-hierarchy';
 
@@ -26,6 +27,7 @@ import '../styles/upstream-highlight.css';
 import { toast } from "sonner";
 import AIBlueprintWizard from './AIBlueprintWizard';
 import ContextMenu from './ContextMenu';
+import SaveStatusIndicator from './SaveStatusIndicator';
 import { 
   findUpstreamNodes, 
   clearHighlight, 
@@ -167,7 +169,9 @@ function BlueprintCanvasInner({
   blueprintId,
   blueprintAuthorId
 }: BlueprintCanvasProps) {
-  const blueprint = useBlueprint(blueprintId);
+  // Supabase 연동 사용 (환경변수가 있으면 Supabase, 없으면 LocalStorage)
+  const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const blueprint = hasSupabase ? useBlueprintSupabase(blueprintId) : useBlueprint(blueprintId);
   const { fitView } = useReactFlow();
   const [selectedNodeType, setSelectedNodeType] = useState<NodeType>(NodeType.TASK);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -208,18 +212,29 @@ function BlueprintCanvasInner({
     }
   }, [isUpstreamHighlighted, upstreamResult, baseNodes, baseEdges]);
 
-  // 로컬 상태 변경시 useBlueprint 훅으로 전달
-  useEffect(() => {
-    if (editable && localNodes.length > 0) {
-      blueprint.setNodes(localNodes);
+  // onNodesChange 핸들러를 직접 래핑하여 즉시 동기화
+  const handleNodesChange = useCallback((changes: any) => {
+    onNodesChange(changes);
+    // 노드 위치 변경 시 즉시 blueprint hook에 전달
+    if (editable && changes.some((change: any) => change.type === 'position' && !change.dragging)) {
+      const updatedNodes = localNodes.map(node => {
+        const change = changes.find((c: any) => c.id === node.id);
+        if (change && change.type === 'position' && change.position) {
+          return { ...node, position: change.position };
+        }
+        return node;
+      });
+      blueprint.setNodes(updatedNodes);
     }
-  }, [localNodes, blueprint, editable]);
+  }, [onNodesChange, editable, localNodes, blueprint]);
 
-  useEffect(() => {
+  // onEdgesChange 핸들러도 래핑
+  const handleEdgesChange = useCallback((changes: any) => {
+    onEdgesChange(changes);
     if (editable) {
       blueprint.setEdges(localEdges);
     }
-  }, [localEdges, blueprint, editable]);
+  }, [onEdgesChange, editable, localEdges, blueprint]);
 
   // blueprint 상태가 변경되면 로컬 상태 업데이트
   useEffect(() => {
@@ -828,8 +843,8 @@ function BlueprintCanvasInner({
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
+          onNodesChange={handleNodesChange}
+          onEdgesChange={handleEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
           onNodeContextMenu={onNodeContextMenu}
@@ -1157,6 +1172,15 @@ function BlueprintCanvasInner({
         <AIBlueprintWizard
           onBlueprintGenerated={handleAIBlueprintGenerated}
           onClose={() => setShowAIWizard(false)}
+        />
+      )}
+      
+      {/* 저장 상태 인디케이터 */}
+      {'saveStatus' in blueprint && (
+        <SaveStatusIndicator 
+          saveStatus={blueprint.saveStatus || 'idle'}
+          saveError={blueprint.saveError}
+          lastSaved={blueprint.lastSaved}
         />
       )}
     </div>

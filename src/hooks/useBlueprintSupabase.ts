@@ -28,6 +28,8 @@ export function useBlueprintSupabase(blueprintId?: string) {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [databaseId, setDatabaseId] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const blueprintService = useMemo(() => new BlueprintService(), []);
   const userService = useMemo(() => new UserService(), []);
@@ -81,11 +83,13 @@ export function useBlueprintSupabase(blueprintId?: string) {
     }
   ) => {
     setIsSaving(true);
+    setSaveStatus('saving');
+    setSaveError(null);
     
     try {
       const currentUser = getCurrentUser();
       if (!currentUser) {
-        throw new Error('User not authenticated');
+        throw new Error('로그인이 필요합니다');
       }
 
       // Ensure user exists in database
@@ -128,6 +132,7 @@ export function useBlueprintSupabase(blueprintId?: string) {
 
       if (savedBlueprint) {
         setLastSaved(new Date());
+        setSaveStatus('saved');
         
         // Also save to localStorage for offline access
         const localData: SavedBlueprint = {
@@ -141,6 +146,11 @@ export function useBlueprintSupabase(blueprintId?: string) {
           lastModified: savedBlueprint.updated_at.toISOString(),
         };
         localStorage.setItem(`blueprint-${savedBlueprint.id}`, JSON.stringify(localData));
+        
+        // 저장 성공 후 3초 뒤 상태 초기화
+        setTimeout(() => {
+          setSaveStatus('idle');
+        }, 3000);
       }
       
       // Update state
@@ -152,6 +162,15 @@ export function useBlueprintSupabase(blueprintId?: string) {
       return true;
     } catch (error) {
       console.error('Failed to save blueprint:', error);
+      setSaveStatus('error');
+      setSaveError(error instanceof Error ? error.message : '저장 중 오류가 발생했습니다');
+      
+      // 에러 메시지 5초 뒤 초기화
+      setTimeout(() => {
+        setSaveStatus('idle');
+        setSaveError(null);
+      }, 5000);
+      
       throw error;
     } finally {
       setIsSaving(false);
@@ -239,5 +258,7 @@ export function useBlueprintSupabase(blueprintId?: string) {
     lastSaved,
     isLoading,
     databaseId,
+    saveError,
+    saveStatus,
   };
 }
