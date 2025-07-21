@@ -16,6 +16,7 @@ const sampleUsers = [
 // 갤러리 상세 페이지에서 추출한 실제 샘플 청사진 데이터
 const sampleBlueprints = [
   {
+    id: '1', // 갤러리에서 사용하는 ID와 동일하게 설정
     title: '주니어에서 시니어 개발자로 3년 성장기',
     description: '체계적인 기술 성장과 리더십 개발을 통한 시니어 개발자 성장기',
     category: '커리어',
@@ -139,6 +140,7 @@ const sampleBlueprints = [
     ] as Edge[]
   },
   {
+    id: '2',
     title: '퇴사 없이 부업으로 월 500만원',
     description: '직장 생활과 병행하며 온라인 비즈니스로 안정적인 부수입 창출',
     category: '창업',
@@ -233,6 +235,7 @@ const sampleBlueprints = [
     ] as Edge[]
   },
   {
+    id: '3',
     title: '비전공자 개발자 취업 성공기',
     description: '영업직에서 프론트엔드 개발자로의 성공적인 커리어 전환',
     category: '커리어',
@@ -327,6 +330,7 @@ const sampleBlueprints = [
     ] as Edge[]
   },
   {
+    id: '4',
     title: '대학원 진학부터 논문 게재까지',
     description: '학부 연구생부터 국제학회 논문 발표까지의 학술 연구 여정',
     category: '학습',
@@ -421,6 +425,7 @@ const sampleBlueprints = [
     ] as Edge[]
   },
   {
+    id: '5',
     title: '운동 초보자의 -20kg 다이어트',
     description: '체계적인 운동과 식단 관리로 건강한 몸 만들기',
     category: '건강',
@@ -515,6 +520,7 @@ const sampleBlueprints = [
     ] as Edge[]
   },
   {
+    id: '6',
     title: '인스타 1만 팔로워 쇼핑몰 창업',
     description: 'SNS 인플루언서에서 온라인 쇼핑몰 사업가로의 전환',
     category: '창업',
@@ -665,6 +671,7 @@ export async function migrateSampleBlueprints() {
         const { error } = await supabase
           .from('blueprints')
           .insert({
+            id: blueprint.id, // 갤러리에서 사용하는 ID 사용
             title: blueprint.title,
             description: blueprint.description,
             category: blueprint.category,

@@ -12,6 +12,8 @@ import {
   type OnConnect,
   type Node,
   type Edge,
+  type NodeChange,
+  type EdgeChange,
   BackgroundVariant,
   useReactFlow,
   ReactFlowProvider,
@@ -171,7 +173,9 @@ function BlueprintCanvasInner({
 }: BlueprintCanvasProps) {
   // Supabase 연동 사용 (환경변수가 있으면 Supabase, 없으면 LocalStorage)
   const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const blueprint = hasSupabase ? useBlueprintSupabase(blueprintId) : useBlueprint(blueprintId);
+  const blueprintSupabase = useBlueprintSupabase(blueprintId);
+  const blueprintLocal = useBlueprint(blueprintId);
+  const blueprint = hasSupabase ? blueprintSupabase : blueprintLocal;
   const { fitView } = useReactFlow();
   const [selectedNodeType, setSelectedNodeType] = useState<NodeType>(NodeType.TASK);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
@@ -213,13 +217,13 @@ function BlueprintCanvasInner({
   }, [isUpstreamHighlighted, upstreamResult, baseNodes, baseEdges]);
 
   // onNodesChange 핸들러를 직접 래핑하여 즉시 동기화
-  const handleNodesChange = useCallback((changes: any) => {
+  const handleNodesChange = useCallback((changes: NodeChange[]) => {
     onNodesChange(changes);
     // 노드 위치 변경 시 즉시 blueprint hook에 전달
-    if (editable && changes.some((change: any) => change.type === 'position' && !change.dragging)) {
+    if (editable && changes.some((change: NodeChange) => change.type === 'position' && 'dragging' in change && !change.dragging)) {
       const updatedNodes = localNodes.map(node => {
-        const change = changes.find((c: any) => c.id === node.id);
-        if (change && change.type === 'position' && change.position) {
+        const change = changes.find((c: NodeChange) => 'id' in c && c.id === node.id);
+        if (change && change.type === 'position' && 'position' in change && change.position) {
           return { ...node, position: change.position };
         }
         return node;
@@ -229,7 +233,7 @@ function BlueprintCanvasInner({
   }, [onNodesChange, editable, localNodes, blueprint]);
 
   // onEdgesChange 핸들러도 래핑
-  const handleEdgesChange = useCallback((changes: any) => {
+  const handleEdgesChange = useCallback((changes: EdgeChange[]) => {
     onEdgesChange(changes);
     if (editable) {
       blueprint.setEdges(localEdges);
@@ -388,12 +392,25 @@ function BlueprintCanvasInner({
         const newBlueprintId = blueprintId === 'default' && !blueprint.title ? 
           `${Date.now()}` : blueprintId;
         
-        await blueprint.saveBlueprint({
-          title: saveForm.title,
-          description: saveForm.description,
-          category: saveForm.category,
-          privacy: saveForm.privacy
-        }, newBlueprintId);
+        // Hook에 따라 다른 파라미터 패턴 및 privacy 값 처리
+        if (hasSupabase) {
+          // Supabase: 'followers'를 'unlisted'로 변환 (Supabase는 followers 지원 안함)
+          const supabasePrivacy = saveForm.privacy === 'followers' ? 'unlisted' : saveForm.privacy;
+          await blueprintSupabase.saveBlueprint({
+            title: saveForm.title,
+            description: saveForm.description,
+            category: saveForm.category,
+            privacy: supabasePrivacy as 'private' | 'unlisted' | 'public'
+          });
+        } else {
+          // LocalStorage: 모든 privacy 옵션 지원
+          await blueprintLocal.saveBlueprint({
+            title: saveForm.title,
+            description: saveForm.description,
+            category: saveForm.category,
+            privacy: saveForm.privacy
+          }, newBlueprintId);
+        }
         
         setShowSaveModal(false);
         
