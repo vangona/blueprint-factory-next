@@ -6,9 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "gen:types": "npx supabase gen types typescript --project-id 'irnlcqbxcfreyencdmxf' --schema public > src/types/database.types.ts"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@langchain/openai": "^0.5.18",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.52.0",
@@ -26,6 +28,7 @@
     "react-markdown": "^10.1.0",
     "reactflow": "^11.11.4",
     "sonner": "^2.0.5",
+    "supabase": "^2.34.3",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {

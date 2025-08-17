@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -70,6 +70,230 @@ export type Database = {
           },
         ]
       }
+      goal_reactions: {
+        Row: {
+          created_at: string | null
+          goal_id: string
+          id: string
+          message: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          goal_id: string
+          id?: string
+          message?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          goal_id?: string
+          id?: string
+          message?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_reactions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_reactions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "public_goals_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_reactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_relationships: {
+        Row: {
+          created_at: string | null
+          from_goal_id: string
+          id: string
+          relationship_type: string
+          to_goal_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          from_goal_id: string
+          id?: string
+          relationship_type: string
+          to_goal_id: string
+        }
+        Update: {
+          created_at?: string | null
+          from_goal_id?: string
+          id?: string
+          relationship_type?: string
+          to_goal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_relationships_from_goal_id_fkey"
+            columns: ["from_goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_relationships_from_goal_id_fkey"
+            columns: ["from_goal_id"]
+            isOneToOne: false
+            referencedRelation: "public_goals_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_relationships_to_goal_id_fkey"
+            columns: ["to_goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goal_relationships_to_goal_id_fkey"
+            columns: ["to_goal_id"]
+            isOneToOne: false
+            referencedRelation: "public_goals_with_stats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          id: string
+          is_public: boolean | null
+          parent_goal_id: string | null
+          progress: number | null
+          status: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          parent_goal_id?: string | null
+          progress?: number | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_public?: boolean | null
+          parent_goal_id?: string | null
+          progress?: number | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "public_goals_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journals: {
+        Row: {
+          content: string
+          created_at: string | null
+          goal_id: string
+          id: string
+          mood: string | null
+          progress_update: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          goal_id: string
+          id?: string
+          mood?: string | null
+          progress_update?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          goal_id?: string
+          id?: string
+          mood?: string | null
+          progress_update?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journals_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "public_goals_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journals_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
@@ -120,6 +344,50 @@ export type Database = {
           {
             foreignKeyName: "blueprints_author_id_fkey"
             columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_goals_with_stats: {
+        Row: {
+          author_name: string | null
+          category: string | null
+          created_at: string | null
+          deadline: string | null
+          description: string | null
+          id: string | null
+          is_public: boolean | null
+          journal_count: number | null
+          like_count: number | null
+          parent_goal_id: string | null
+          progress: number | null
+          reaction_count: number | null
+          status: string | null
+          support_count: number | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_parent_goal_id_fkey"
+            columns: ["parent_goal_id"]
+            isOneToOne: false
+            referencedRelation: "public_goals_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
