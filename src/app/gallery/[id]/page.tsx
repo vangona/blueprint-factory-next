@@ -163,7 +163,7 @@ export default function BlueprintDetailPage({ params }: PageProps) {
       </div>
 
       {/* 청사진 캔버스 */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative" style={{ minHeight: '500px' }}>
         <BlueprintCanvas
           initialNodes={blueprint.nodes}
           initialEdges={blueprint.edges}

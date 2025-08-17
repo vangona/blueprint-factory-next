@@ -19,6 +19,11 @@ export interface BlueprintPrivacy {
  * 현재 로그인된 사용자 정보 반환
  */
 export function getCurrentUser(): User | null {
+  // 서버 사이드에서는 localStorage에 접근할 수 없으므로 null 반환
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
   try {
     const userString = localStorage.getItem('current-user');
     if (!userString) return null;
@@ -40,6 +45,11 @@ export function getCurrentUser(): User | null {
  * 사용자 로그인 (개발용)
  */
 export function setCurrentUser(user: User): void {
+  // 서버 사이드에서는 localStorage에 접근할 수 없으므로 무시
+  if (typeof window === 'undefined') {
+    return;
+  }
+  
   localStorage.setItem('current-user', JSON.stringify(user));
 }
 
@@ -47,6 +57,11 @@ export function setCurrentUser(user: User): void {
  * 로그아웃
  */
 export function logout(): void {
+  // 서버 사이드에서는 localStorage에 접근할 수 없으므로 무시
+  if (typeof window === 'undefined') {
+    return;
+  }
+  
   localStorage.removeItem('current-user');
 }
 
